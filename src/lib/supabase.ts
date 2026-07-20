@@ -111,6 +111,29 @@ export async function dbInsertProposal(proposal: Proposal): Promise<boolean> {
   }
 }
 
+export async function dbInsertBallotSubmissions(submissions: BallotSubmission[]): Promise<boolean> {
+  if (!isSupabaseConfigured || submissions.length === 0) return false;
+  try {
+    const payload = submissions.map(submission => ({
+      voter_id: submission.voterId,
+      rankings: submission.rankings,
+      write_in: submission.writeIn || null,
+      submitted_at: submission.submittedAt.toISOString(),
+    }));
+
+    const { error } = await supabase.from('ballot_submissions').upsert(payload);
+
+    if (error) {
+      console.warn('Supabase insert submissions error:', error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error('Failed to insert submissions:', err);
+    return false;
+  }
+}
+
 export async function dbFetchBallotSubmissions(): Promise<BallotSubmission[] | null> {
   if (!isSupabaseConfigured) return null;
   try {

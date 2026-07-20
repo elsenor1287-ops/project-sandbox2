@@ -4,6 +4,7 @@ import {
   dbInsertProposal, 
   dbFetchBallotSubmissions, 
   dbInsertBallotSubmission, 
+  dbInsertBallotSubmissions,
   dbResetVotingSubmissions,
   isSupabaseConfigured
 } from '../lib/supabase';
@@ -127,9 +128,7 @@ export function useAppState() {
               }
             ];
 
-            for (const s of seedSubmissions) {
-              await dbInsertBallotSubmission(s);
-            }
+            await dbInsertBallotSubmissions(seedSubmissions);
             fetchedSubmissions = seedSubmissions;
           }
 
@@ -368,14 +367,14 @@ export function useAppState() {
             submittedAt: new Date(),
           };
           newSubmissions.push(sub);
-
-          // Sync to Supabase asynchronously
-          if (isSupabaseConfigured) {
-            dbInsertBallotSubmission(sub).catch(err => {
-              console.error('Failed to sync generated mock submission to Supabase:', err);
-            });
-          }
         }
+      }
+
+      // Sync to Supabase asynchronously using bulk insert
+      if (isSupabaseConfigured && newSubmissions.length > 0) {
+        dbInsertBallotSubmissions(newSubmissions).catch(err => {
+          console.error('Failed to bulk sync generated mock submissions to Supabase:', err);
+        });
       }
 
       // Update ballot options with write-ins
