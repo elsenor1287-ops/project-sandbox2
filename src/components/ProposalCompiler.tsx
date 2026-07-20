@@ -243,11 +243,20 @@ export function CompilerPage({
         highlighted = highlighted.replace(regex, '==VIOLATION==$1==END==');
       }
     });
-    return highlighted
-      .replace(/==VIOLATION==.*?==END==/g, match => {
-        const keyword = match.replace(/==VIOLATION==|==END==/g, '');
-        return `<span class="bg-danger-500/30 text-danger-300 px-1 rounded">${keyword}</span>`;
-      });
+
+    const parts = highlighted.split(/(==VIOLATION==.*?==END==)/g);
+
+    return parts.map((part, index) => {
+      if (part.startsWith('==VIOLATION==') && part.endsWith('==END==')) {
+        const keyword = part.replace(/==VIOLATION==|==END==/g, '');
+        return (
+          <span key={index} className="bg-danger-500/30 text-danger-300 px-1 rounded">
+            {keyword}
+          </span>
+        );
+      }
+      return <span key={index}>{part}</span>;
+    });
   };
 
   return (
@@ -554,12 +563,9 @@ export function CompilerPage({
 
                 <div>
                   <span className="text-xs text-primary-500">Violating Content</span>
-                  <div
-                    className="mt-2 p-3 bg-danger-500/10 rounded-lg font-mono text-sm text-primary-300"
-                    dangerouslySetInnerHTML={{
-                      __html: highlightViolations(content, compileResult.violations),
-                    }}
-                  />
+                  <div className="mt-2 p-3 bg-danger-500/10 rounded-lg font-mono text-sm text-primary-300">
+                    {highlightViolations(content, compileResult.violations)}
+                  </div>
                 </div>
               </div>
             </div>
