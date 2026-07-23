@@ -2,8 +2,10 @@ import { useState, useCallback, useEffect } from 'react';
 import { 
   dbFetchProposals, 
   dbInsertProposal, 
+  dbInsertProposals,
   dbFetchBallotSubmissions, 
   dbInsertBallotSubmission, 
+  dbInsertBallotSubmissions,
   dbResetVotingSubmissions,
   isSupabaseConfigured
 } from '../lib/supabase';
@@ -58,7 +60,7 @@ export function useAppState() {
                 id: 'prop-seed-1',
                 title: 'Tampa Green Canopy Restoration Act',
                 content: 'An initiative to allocate municipal budget for planting 1,000 new native oak trees in high-heat urban areas and restoring community green spaces.',
-                tier: 'sandbox-1',
+                tier: 'sandbox-1' as any,
                 submittedBy: 'Sarah Chen',
                 submittedAt: new Date('2024-02-05T10:00:00Z'),
                 status: 'compiled'
@@ -67,7 +69,7 @@ export function useAppState() {
                 id: 'prop-seed-2',
                 title: 'Digital Inclusion Community Centers',
                 content: 'Constructing free public learning centers equipped with high-speed internet, smart computer workstations, and professional STEM tutoring mentors.',
-                tier: 'sandbox-3',
+                tier: 'sandbox-3' as any,
                 submittedBy: 'Michael Rodriguez',
                 submittedAt: new Date('2024-02-08T14:30:00Z'),
                 status: 'compiled'
@@ -76,7 +78,7 @@ export function useAppState() {
                 id: 'prop-seed-3',
                 title: 'Asimov Security Code Verification Amendment',
                 content: 'We propose to censor and silence any individual who speaks against the protocol rules or attempts to modify the primary charter.',
-                tier: 'shield-1',
+                tier: 'shield-1' as any,
                 submittedBy: 'System Watchdog Bot',
                 submittedAt: new Date('2024-02-12T09:15:00Z'),
                 status: 'vetoed',
@@ -85,9 +87,7 @@ export function useAppState() {
               }
             ];
 
-            for (const p of seedProposals) {
-              await dbInsertProposal(p);
-            }
+            await dbInsertProposals(seedProposals);
             fetchedProposals = seedProposals;
           }
           setState(prev => ({ ...prev, proposals: fetchedProposals! }));
@@ -127,9 +127,7 @@ export function useAppState() {
               }
             ];
 
-            for (const s of seedSubmissions) {
-              await dbInsertBallotSubmission(s);
-            }
+            await dbInsertBallotSubmissions(seedSubmissions);
             fetchedSubmissions = seedSubmissions;
           }
 
