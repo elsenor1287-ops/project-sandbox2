@@ -97,6 +97,34 @@ export async function dbInsertProposal(proposal: Proposal): Promise<boolean> {
   }
 }
 
+export async function dbInsertProposals(proposals: Proposal[]): Promise<boolean> {
+  if (!isSupabaseConfigured || proposals.length === 0) return false;
+  try {
+    const payload = proposals.map(proposal => ({
+      id: proposal.id,
+      title: proposal.title,
+      content: proposal.content,
+      tier: proposal.tier,
+      submitted_by: proposal.submittedBy,
+      submitted_at: proposal.submittedAt.toISOString(),
+      status: proposal.status,
+      veto_reason: proposal.vetoReason || null,
+      triggered_keywords: proposal.triggeredKeywords || null,
+    }));
+
+    const { error } = await supabase.from('proposals').insert(payload);
+
+    if (error) {
+      console.warn('Supabase insert proposals error:', error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error('Failed to insert proposals:', err);
+    return false;
+  }
+}
+
 export async function dbFetchBallotSubmissions(): Promise<BallotSubmission[] | null> {
   if (!isSupabaseConfigured) return null;
   try {
@@ -160,6 +188,29 @@ export async function dbInsertBallotSubmission(submission: BallotSubmission): Pr
     return true;
   } catch (err) {
     console.error('Failed to insert submission:', err);
+    return false;
+  }
+}
+
+export async function dbInsertBallotSubmissions(submissions: BallotSubmission[]): Promise<boolean> {
+  if (!isSupabaseConfigured || submissions.length === 0) return false;
+  try {
+    const payload = submissions.map(submission => ({
+      voter_id: submission.voterId,
+      rankings: submission.rankings,
+      write_in: submission.writeIn || null,
+      submitted_at: submission.submittedAt.toISOString(),
+    }));
+
+    const { error } = await supabase.from('ballot_submissions').upsert(payload);
+
+    if (error) {
+      console.warn('Supabase insert submissions error:', error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error('Failed to insert submissions:', err);
     return false;
   }
 }
