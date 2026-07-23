@@ -14,6 +14,48 @@ export const isSupabaseConfigured = Boolean(
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey || 'dummy-key');
 
+export const SUPABASE_SQL_SETUP = `-- Supabase SQL Setup for Project Sandbox
+-- Copy and run this script in your Supabase SQL Editor to set up the necessary tables!
+
+-- 1. Create Proposals Table
+CREATE TABLE IF NOT EXISTS proposals (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  content TEXT NOT NULL,
+  tier TEXT NOT NULL,
+  submitted_by TEXT NOT NULL,
+  submitted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  status TEXT NOT NULL,
+  veto_reason TEXT,
+  triggered_keywords TEXT[]
+);
+
+-- 2. Create Ballot Submissions Table
+CREATE TABLE IF NOT EXISTS ballot_submissions (
+  voter_id TEXT PRIMARY KEY,
+  rankings JSONB NOT NULL,
+  write_in TEXT,
+  submitted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+
+-- Enable Row Level Security (RLS) and require authentication
+ALTER TABLE proposals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ballot_submissions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow authenticated read access to proposals" ON proposals
+  FOR SELECT USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Allow authenticated write access to proposals" ON proposals
+  FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+CREATE POLICY "Allow authenticated read access to submissions" ON ballot_submissions
+  FOR SELECT USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Allow authenticated write access to submissions" ON ballot_submissions
+  FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+`;
+
 export async function dbFetchProposals(): Promise<Proposal[] | null> {
   if (!isSupabaseConfigured) return null;
   try {
