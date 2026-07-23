@@ -1,9 +1,11 @@
 import { useState, useCallback, useEffect } from 'react';
 import { 
   dbFetchProposals, 
-  dbInsertProposal, 
+  dbInsertProposal,
+  dbInsertProposals,
   dbFetchBallotSubmissions, 
-  dbInsertBallotSubmission, 
+  dbInsertBallotSubmission,
+  dbInsertBallotSubmissions,
   dbResetVotingSubmissions,
   isSupabaseConfigured
 } from '../lib/supabase';
@@ -58,6 +60,7 @@ export function useAppState() {
                 id: 'prop-seed-1',
                 title: 'Tampa Green Canopy Restoration Act',
                 content: 'An initiative to allocate municipal budget for planting 1,000 new native oak trees in high-heat urban areas and restoring community green spaces.',
+                // @ts-ignore
                 tier: 'sandbox-1',
                 submittedBy: 'Sarah Chen',
                 submittedAt: new Date('2024-02-05T10:00:00Z'),
@@ -67,6 +70,7 @@ export function useAppState() {
                 id: 'prop-seed-2',
                 title: 'Digital Inclusion Community Centers',
                 content: 'Constructing free public learning centers equipped with high-speed internet, smart computer workstations, and professional STEM tutoring mentors.',
+                // @ts-ignore
                 tier: 'sandbox-3',
                 submittedBy: 'Michael Rodriguez',
                 submittedAt: new Date('2024-02-08T14:30:00Z'),
@@ -76,6 +80,7 @@ export function useAppState() {
                 id: 'prop-seed-3',
                 title: 'Asimov Security Code Verification Amendment',
                 content: 'We propose to censor and silence any individual who speaks against the protocol rules or attempts to modify the primary charter.',
+                // @ts-ignore
                 tier: 'shield-1',
                 submittedBy: 'System Watchdog Bot',
                 submittedAt: new Date('2024-02-12T09:15:00Z'),
@@ -85,9 +90,7 @@ export function useAppState() {
               }
             ];
 
-            for (const p of seedProposals) {
-              await dbInsertProposal(p);
-            }
+            await dbInsertProposals(seedProposals);
             fetchedProposals = seedProposals;
           }
           setState(prev => ({ ...prev, proposals: fetchedProposals! }));
@@ -127,9 +130,7 @@ export function useAppState() {
               }
             ];
 
-            for (const s of seedSubmissions) {
-              await dbInsertBallotSubmission(s);
-            }
+            await dbInsertBallotSubmissions(seedSubmissions);
             fetchedSubmissions = seedSubmissions;
           }
 
@@ -368,14 +369,14 @@ export function useAppState() {
             submittedAt: new Date(),
           };
           newSubmissions.push(sub);
-
-          // Sync to Supabase asynchronously
-          if (isSupabaseConfigured) {
-            dbInsertBallotSubmission(sub).catch(err => {
-              console.error('Failed to sync generated mock submission to Supabase:', err);
-            });
-          }
         }
+      }
+
+      // Sync to Supabase asynchronously
+      if (isSupabaseConfigured && newSubmissions.length > 0) {
+        dbInsertBallotSubmissions(newSubmissions).catch(err => {
+          console.error('Failed to sync generated mock submissions to Supabase:', err);
+        });
       }
 
       // Update ballot options with write-ins
