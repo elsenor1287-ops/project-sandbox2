@@ -578,8 +578,9 @@ function calculateRCVResult(
     const loserId = Object.keys(voteDistribution).find(id => voteDistribution[id] === minVotes)!;
 
     currentOptions = currentOptions.filter(opt => opt.id !== loserId);
+    const validOptionIds = new Set(currentOptions.map(opt => opt.id));
     currentRankings = currentRankings.map(rankings =>
-      rankings.filter(r => currentOptions.some(opt => opt.id === r.optionId))
+      rankings.filter(r => validOptionIds.has(r.optionId))
     );
 
     rounds.push({ roundNumber, eliminatedOptionId: loserId, voteDistribution, threshold, totalVotes });
