@@ -15,14 +15,17 @@ export function BallotStatus({
   ballotSubmissions,
   onNavigate,
 }: BallotStatusProps) {
-  const firstChoiceVoteCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    for (const sub of ballotSubmissions) {
-      const firstChoice = sub.rankings.find((r) => r.rank === 1);
+  const firstChoiceCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    ballotSubmissions.forEach(sub => {
+      const firstChoice = sub.rankings.find(r => r.rank === 1);
       if (firstChoice) {
-        counts[firstChoice.optionId] = (counts[firstChoice.optionId] || 0) + 1;
+        counts.set(
+          firstChoice.optionId,
+          (counts.get(firstChoice.optionId) || 0) + 1
+        );
       }
-    }
+    });
     return counts;
   }, [ballotSubmissions]);
 
@@ -68,7 +71,7 @@ export function BallotStatus({
 
       <div className="grid grid-cols-2 gap-4">
         {ballotOptions.slice(0, 4).map(option => {
-          const voteCount = firstChoiceVoteCounts[option.id] || 0;
+          const voteCount = firstChoiceCounts.get(option.id) || 0;
           const percentage =
             ballotSubmissions.length > 0
               ? (voteCount / ballotSubmissions.length) * 100
