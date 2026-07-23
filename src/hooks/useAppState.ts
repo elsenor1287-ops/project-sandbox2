@@ -1,10 +1,10 @@
 import { useState, useCallback, useEffect } from 'react';
 import { 
   dbFetchProposals, 
-  dbInsertProposal, 
+  dbInsertProposal,
   dbInsertProposals,
   dbFetchBallotSubmissions, 
-  dbInsertBallotSubmission,
+  dbInsertBallotSubmission, 
   dbInsertBallotSubmissions,
   dbResetVotingSubmissions,
   isSupabaseConfigured
@@ -69,7 +69,7 @@ export function useAppState() {
                 id: 'prop-seed-2',
                 title: 'Digital Inclusion Community Centers',
                 content: 'Constructing free public learning centers equipped with high-speed internet, smart computer workstations, and professional STEM tutoring mentors.',
-                tier: 'law2_sandbox',
+                tier: 'law3_dynamic',
                 submittedBy: 'Michael Rodriguez',
                 submittedAt: new Date('2024-02-08T14:30:00Z'),
                 status: 'compiled'
