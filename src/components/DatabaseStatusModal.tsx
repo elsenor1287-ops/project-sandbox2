@@ -1,6 +1,48 @@
 import { useState, useEffect } from 'react';
 import { Database, CheckCircle2, AlertTriangle, Copy, Check, Terminal, ExternalLink, X, RefreshCw } from 'lucide-react';
-import { isSupabaseConfigured, supabase, SUPABASE_SQL_SETUP } from '../lib/supabase';
+import { isSupabaseConfigured, supabase } from '../lib/supabase';
+
+const SUPABASE_SQL_SETUP = `\
+-- Supabase SQL Setup for Project Sandbox
+-- Copy and run this script in your Supabase SQL Editor to set up the necessary tables!
+
+-- 1. Create Proposals Table
+CREATE TABLE IF NOT EXISTS proposals (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  content TEXT NOT NULL,
+  tier TEXT NOT NULL,
+  submitted_by TEXT NOT NULL,
+  submitted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  status TEXT NOT NULL,
+  veto_reason TEXT,
+  triggered_keywords TEXT[]
+);
+
+-- 2. Create Ballot Submissions Table
+CREATE TABLE IF NOT EXISTS ballot_submissions (
+  voter_id TEXT PRIMARY KEY,
+  rankings JSONB NOT NULL,
+  write_in TEXT,
+  submitted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Enable Row Level Security (RLS) and allow public access for development
+ALTER TABLE proposals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ballot_submissions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow public read access to proposals" ON proposals
+  FOR SELECT USING (true);
+
+CREATE POLICY "Allow public write access to proposals" ON proposals
+  FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Allow public read access to submissions" ON ballot_submissions
+  FOR SELECT USING (true);
+
+CREATE POLICY "Allow public write access to submissions" ON ballot_submissions
+  FOR INSERT WITH CHECK (true);
+`;
 
 interface DatabaseStatusModalProps {
   isOpen: boolean;

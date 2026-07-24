@@ -14,47 +14,6 @@ export const isSupabaseConfigured = Boolean(
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey || 'dummy-key');
 
-export const SUPABASE_SQL_SETUP = `-- Supabase SQL Setup for Project Sandbox
--- Copy and run this script in your Supabase SQL Editor to set up the necessary tables!
-
--- 1. Create Proposals Table
-CREATE TABLE IF NOT EXISTS proposals (
-  id TEXT PRIMARY KEY,
-  title TEXT NOT NULL,
-  content TEXT NOT NULL,
-  tier TEXT NOT NULL,
-  submitted_by TEXT NOT NULL,
-  submitted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  status TEXT NOT NULL,
-  veto_reason TEXT,
-  triggered_keywords TEXT[]
-);
-
--- 2. Create Ballot Submissions Table
-CREATE TABLE IF NOT EXISTS ballot_submissions (
-  voter_id TEXT PRIMARY KEY,
-  rankings JSONB NOT NULL,
-  write_in TEXT,
-  submitted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- Enable Row Level Security (RLS) and allow public access for development
-ALTER TABLE proposals ENABLE ROW LEVEL SECURITY;
-ALTER TABLE ballot_submissions ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Allow public read access to proposals" ON proposals
-  FOR SELECT USING (true);
-
-CREATE POLICY "Allow public write access to proposals" ON proposals
-  FOR INSERT WITH CHECK (true);
-
-CREATE POLICY "Allow public read access to submissions" ON ballot_submissions
-  FOR SELECT USING (true);
-
-CREATE POLICY "Allow public write access to submissions" ON ballot_submissions
-  FOR INSERT WITH CHECK (true);
-`;
-
 export async function dbFetchProposals(): Promise<Proposal[] | null> {
   if (!isSupabaseConfigured) return null;
   try {
@@ -85,6 +44,33 @@ export async function dbFetchProposals(): Promise<Proposal[] | null> {
   }
 }
 
+export async function dbInsertProposals(proposals: Proposal[]): Promise<boolean> {
+  if (!isSupabaseConfigured) return false;
+  if (proposals.length === 0) return true;
+  try {
+    const { error } = await supabase.from('proposals').insert(proposals.map(proposal => ({
+      id: proposal.id,
+      title: proposal.title,
+      content: proposal.content,
+      tier: proposal.tier,
+      submitted_by: proposal.submittedBy,
+      submitted_at: proposal.submittedAt.toISOString(),
+      status: proposal.status,
+      veto_reason: proposal.vetoReason || null,
+      triggered_keywords: proposal.triggeredKeywords || null,
+    })));
+
+    if (error) {
+      console.warn('Supabase bulk insert proposals error:', error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error('Failed to bulk insert proposals:', err);
+    return false;
+  }
+}
+
 export async function dbInsertProposal(proposal: Proposal): Promise<boolean> {
   if (!isSupabaseConfigured) return false;
   try {
@@ -107,6 +93,34 @@ export async function dbInsertProposal(proposal: Proposal): Promise<boolean> {
     return true;
   } catch (err) {
     console.error('Failed to insert proposal:', err);
+    return false;
+  }
+}
+
+export async function dbInsertProposals(proposals: Proposal[]): Promise<boolean> {
+  if (!isSupabaseConfigured || proposals.length === 0) return false;
+  try {
+    const payload = proposals.map(proposal => ({
+      id: proposal.id,
+      title: proposal.title,
+      content: proposal.content,
+      tier: proposal.tier,
+      submitted_by: proposal.submittedBy,
+      submitted_at: proposal.submittedAt.toISOString(),
+      status: proposal.status,
+      veto_reason: proposal.vetoReason || null,
+      triggered_keywords: proposal.triggeredKeywords || null,
+    }));
+
+    const { error } = await supabase.from('proposals').insert(payload);
+
+    if (error) {
+      console.warn('Supabase insert proposals error:', error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error('Failed to insert proposals:', err);
     return false;
   }
 }
@@ -135,6 +149,28 @@ export async function dbFetchBallotSubmissions(): Promise<BallotSubmission[] | n
   }
 }
 
+export async function dbInsertBallotSubmissions(submissions: BallotSubmission[]): Promise<boolean> {
+  if (!isSupabaseConfigured) return false;
+  if (submissions.length === 0) return true;
+  try {
+    const { error } = await supabase.from('ballot_submissions').upsert(submissions.map(submission => ({
+      voter_id: submission.voterId,
+      rankings: submission.rankings,
+      write_in: submission.writeIn || null,
+      submitted_at: submission.submittedAt.toISOString(),
+    })));
+
+    if (error) {
+      console.warn('Supabase bulk insert submissions error:', error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error('Failed to bulk insert submissions:', err);
+    return false;
+  }
+}
+
 export async function dbInsertBallotSubmission(submission: BallotSubmission): Promise<boolean> {
   if (!isSupabaseConfigured) return false;
   try {
@@ -152,6 +188,29 @@ export async function dbInsertBallotSubmission(submission: BallotSubmission): Pr
     return true;
   } catch (err) {
     console.error('Failed to insert submission:', err);
+    return false;
+  }
+}
+
+export async function dbInsertBallotSubmissions(submissions: BallotSubmission[]): Promise<boolean> {
+  if (!isSupabaseConfigured || submissions.length === 0) return false;
+  try {
+    const payload = submissions.map(submission => ({
+      voter_id: submission.voterId,
+      rankings: submission.rankings,
+      write_in: submission.writeIn || null,
+      submitted_at: submission.submittedAt.toISOString(),
+    }));
+
+    const { error } = await supabase.from('ballot_submissions').upsert(payload);
+
+    if (error) {
+      console.warn('Supabase insert submissions error:', error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error('Failed to insert submissions:', err);
     return false;
   }
 }
