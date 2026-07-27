@@ -26,8 +26,10 @@ export function Dashboard({ state, onNavigate }: DashboardProps) {
     }
   }, [ballotOptions, scope]);
 
+  const currentCycleName = state.calendarEvents.find(e => e.type === 'voting')?.title || 'No Active Cycle';
+
   const currentCycle = {
-    name: 'February 2024 Budget Initiative',
+    name: currentCycleName,
     startDate: new Date('2024-02-01'),
     endDate: new Date('2024-02-28'),
     ballotStatus: ballotSubmissions.length > 0 ? 'active' : 'pending',
