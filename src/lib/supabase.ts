@@ -44,32 +44,6 @@ export async function dbFetchProposals(): Promise<Proposal[] | null> {
   }
 }
 
-export async function dbInsertProposals(proposals: Proposal[]): Promise<boolean> {
-  if (!isSupabaseConfigured) return false;
-  if (proposals.length === 0) return true;
-  try {
-    const { error } = await supabase.from('proposals').insert(proposals.map(proposal => ({
-      id: proposal.id,
-      title: proposal.title,
-      content: proposal.content,
-      tier: proposal.tier,
-      submitted_by: proposal.submittedBy,
-      submitted_at: proposal.submittedAt.toISOString(),
-      status: proposal.status,
-      veto_reason: proposal.vetoReason || null,
-      triggered_keywords: proposal.triggeredKeywords || null,
-    })));
-
-    if (error) {
-      console.warn('Supabase bulk insert proposals error:', error.message);
-      return false;
-    }
-    return true;
-  } catch (err) {
-    console.error('Failed to bulk insert proposals:', err);
-    return false;
-  }
-}
 
 export async function dbInsertProposal(proposal: Proposal): Promise<boolean> {
   if (!isSupabaseConfigured) return false;
