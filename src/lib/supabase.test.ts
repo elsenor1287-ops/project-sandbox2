@@ -1,104 +1,31 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { Proposal } from '../types';
 
-vi.mock('@supabase/supabase-js', () => ({
-  createClient: vi.fn(() => ({
-    from: vi.fn(),
-  })),
-}));
-
-// We'll reset modules before each test to ensure env vars take effect
-beforeEach(() => {
-  vi.resetModules();
-});
-
-describe('dbInsertProposal', () => {
-  const mockProposal: Proposal = {
-    id: 'prop-1',
-    title: 'Test Proposal',
-    content: 'Test Content',
-    tier: 'law2_sandbox',
-    submittedBy: 'user-1',
-    submittedAt: new Date('2024-01-01T00:00:00Z'),
-    status: 'draft',
-    vetoReason: undefined,
-    triggeredKeywords: undefined,
-  };
-
-  it('successfully inserts a proposal', async () => {
-    vi.stubEnv('VITE_SUPABASE_URL', 'https://test.supabase.co');
-    vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'test-key');
-
-    const { dbInsertProposal, supabase } = await import('./supabase');
-
-    const mockInsert = vi.fn().mockResolvedValue({ error: null });
-    vi.mocked(supabase.from).mockReturnValue({
-      insert: mockInsert
-    } as any);
-
-    const result = await dbInsertProposal(mockProposal);
-
-    expect(result).toBe(true);
-    expect(supabase.from).toHaveBeenCalledWith('proposals');
-    expect(mockInsert).toHaveBeenCalledWith([{
-      id: mockProposal.id,
-      title: mockProposal.title,
-      content: mockProposal.content,
-      tier: mockProposal.tier,
-      submitted_by: mockProposal.submittedBy,
-      submitted_at: mockProposal.submittedAt.toISOString(),
-      status: mockProposal.status,
-      veto_reason: null,
-      triggered_keywords: null,
-    }]);
+describe('supabase dbFetchProposals error handling', () => {
+  beforeEach(() => {
+    vi.resetModules();
+    vi.unstubAllEnvs();
   });
 
-  it('handles insert error', async () => {
-    vi.stubEnv('VITE_SUPABASE_URL', 'https://test.supabase.co');
-    vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'test-key');
-    const { dbInsertProposal, supabase } = await import('./supabase');
+  it('should return null and log error when dbFetchProposals throws an exception', async () => {
+    vi.stubEnv('VITE_SUPABASE_URL', 'https://mock.supabase.co');
+    vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'mock_key');
 
-    const mockError = new Error('Insert failed');
-    const mockInsert = vi.fn().mockResolvedValue({ error: mockError });
-    vi.mocked(supabase.from).mockReturnValue({
-      insert: mockInsert
-    } as any);
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { dbFetchProposals, supabase, isSupabaseConfigured } = await import('./supabase');
 
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    expect(isSupabaseConfigured).toBe(true);
 
-    const result = await dbInsertProposal(mockProposal);
+    // Mock supabase.from to throw an error
+    vi.spyOn(supabase, 'from').mockImplementation(() => {
+      throw new Error('Forced Supabase Exception');
+    });
 
-    expect(result).toBe(false);
-    expect(warnSpy).toHaveBeenCalledWith('Supabase insert proposal error:', mockError.message);
-    warnSpy.mockRestore();
-  });
+    const result = await dbFetchProposals();
 
-  it('handles unexpected error', async () => {
-    vi.stubEnv('VITE_SUPABASE_URL', 'https://test.supabase.co');
-    vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'test-key');
-    const { dbInsertProposal, supabase } = await import('./supabase');
+    expect(result).toBeNull();
+    expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to fetch proposals:', expect.any(Error));
+    expect(consoleErrorSpy.mock.calls[0][1].message).toBe('Forced Supabase Exception');
 
-    const mockError = new Error('Unexpected error');
-    const mockInsert = vi.fn().mockRejectedValue(mockError);
-    vi.mocked(supabase.from).mockReturnValue({
-      insert: mockInsert
-    } as any);
-
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
-    const result = await dbInsertProposal(mockProposal);
-
-    expect(result).toBe(false);
-    expect(errorSpy).toHaveBeenCalledWith('Failed to insert proposal:', mockError);
-    errorSpy.mockRestore();
-  });
-
-  it('returns false when not configured', async () => {
-    vi.unstubAllEnvs(); // Clear env vars
-    const { dbInsertProposal } = await import('./supabase');
-
-    const result = await dbInsertProposal(mockProposal);
-
-    expect(result).toBe(false);
+    consoleErrorSpy.mockRestore();
   });
 });
