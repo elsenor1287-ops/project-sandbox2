@@ -97,7 +97,6 @@ export async function dbInsertProposal(proposal: Proposal): Promise<boolean> {
   }
 }
 
-
 export async function dbFetchBallotSubmissions(): Promise<BallotSubmission[] | null> {
   if (!isSupabaseConfigured) return null;
   try {
@@ -164,7 +163,6 @@ export async function dbInsertBallotSubmission(submission: BallotSubmission): Pr
     return false;
   }
 }
-
 
 export async function dbResetVotingSubmissions(): Promise<boolean> {
   if (!isSupabaseConfigured) return false;
