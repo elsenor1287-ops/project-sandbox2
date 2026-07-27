@@ -1,7 +1,6 @@
 import { bench, describe } from 'vitest';
 import { renderToString } from 'react-dom/server';
 import { BallotStatus } from './BallotStatus';
-import React from 'react';
 
 // Generate mock data
 const ballotOptions = Array.from({ length: 10 }, (_, i) => ({
