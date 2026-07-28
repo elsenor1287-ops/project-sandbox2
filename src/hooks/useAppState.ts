@@ -1,3 +1,4 @@
+import type { Dispatch, SetStateAction } from 'react';
 import { useState, useCallback, useEffect } from 'react';
 import { 
   dbFetchProposals, 
@@ -30,6 +31,68 @@ import {
 
 const LAW1_RULES = PROTOCOL_RULES.filter(rule => rule.law === 1);
 
+const SEED_PROPOSALS: Proposal[] = [
+  {
+    id: 'prop-seed-1',
+    title: 'Tampa Green Canopy Restoration Act',
+    content: 'An initiative to allocate municipal budget for planting 1,000 new native oak trees in high-heat urban areas and restoring community green spaces.',
+    tier: 'law2_sandbox',
+    submittedBy: 'Sarah Chen',
+    submittedAt: new Date('2024-02-05T10:00:00Z'),
+    status: 'compiled'
+  },
+  {
+    id: 'prop-seed-2',
+    title: 'Digital Inclusion Community Centers',
+    content: 'Constructing free public learning centers equipped with high-speed internet, smart computer workstations, and professional STEM tutoring mentors.',
+    tier: 'law3_dynamic',
+    submittedBy: 'Michael Rodriguez',
+    submittedAt: new Date('2024-02-08T14:30:00Z'),
+    status: 'compiled'
+  },
+  {
+    id: 'prop-seed-3',
+    title: 'Asimov Security Code Verification Amendment',
+    content: 'We propose to censor and silence any individual who speaks against the protocol rules or attempts to modify the primary charter.',
+    tier: 'law1_shield',
+    submittedBy: 'System Watchdog Bot',
+    submittedAt: new Date('2024-02-12T09:15:00Z'),
+    status: 'vetoed',
+    vetoReason: 'First Amendment Shield: "censor" detected; First Amendment Shield: "silence" detected',
+    triggeredKeywords: ['First Amendment Shield: "censor" detected', 'First Amendment Shield: "silence" detected']
+  }
+];
+
+const SEED_SUBMISSIONS: BallotSubmission[] = [
+  {
+    voterId: 'test-1',
+    rankings: [
+      { optionId: 'opt-1', rank: 1 },
+      { optionId: 'opt-2', rank: 2 },
+      { optionId: 'opt-3', rank: 3 }
+    ],
+    submittedAt: new Date('2024-02-14T08:00:00Z')
+  },
+  {
+    voterId: 'test-2',
+    rankings: [
+      { optionId: 'opt-2', rank: 1 },
+      { optionId: 'opt-1', rank: 2 },
+      { optionId: 'opt-5', rank: 3 }
+    ],
+    submittedAt: new Date('2024-02-14T09:12:00Z')
+  },
+  {
+    voterId: 'test-3',
+    rankings: [
+      { optionId: 'opt-3', rank: 1 },
+      { optionId: 'opt-6', rank: 2 },
+      { optionId: 'opt-2', rank: 3 }
+    ],
+    submittedAt: new Date('2024-02-14T11:45:00Z')
+  }
+];
+
 const initialState: AppState = {
   currentPage: '/dashboard',
   identity: INITIAL_IDENTITY,
@@ -41,10 +104,7 @@ const initialState: AppState = {
   calendarEvents: MOCK_CALENDAR_EVENTS,
 };
 
-export function useAppState() {
-  const [state, setState] = useState<AppState>(initialState);
-
-  // Sync with Supabase on mount if configured
+function useDataSync(setState: Dispatch<SetStateAction<AppState>>) {
   useEffect(() => {
     if (!isSupabaseConfigured) return;
 
@@ -97,39 +157,8 @@ export function useAppState() {
         let fetchedSubmissions = await dbFetchBallotSubmissions();
         if (fetchedSubmissions !== null) {
           if (fetchedSubmissions.length === 0) {
-            // Seed default submissions
-            const seedSubmissions: BallotSubmission[] = [
-              {
-                voterId: 'test-1',
-                rankings: [
-                  { optionId: 'opt-1', rank: 1 },
-                  { optionId: 'opt-2', rank: 2 },
-                  { optionId: 'opt-3', rank: 3 }
-                ],
-                submittedAt: new Date('2024-02-14T08:00:00Z')
-              },
-              {
-                voterId: 'test-2',
-                rankings: [
-                  { optionId: 'opt-2', rank: 1 },
-                  { optionId: 'opt-1', rank: 2 },
-                  { optionId: 'opt-5', rank: 3 }
-                ],
-                submittedAt: new Date('2024-02-14T09:12:00Z')
-              },
-              {
-                voterId: 'test-3',
-                rankings: [
-                  { optionId: 'opt-3', rank: 1 },
-                  { optionId: 'opt-6', rank: 2 },
-                  { optionId: 'opt-2', rank: 3 }
-                ],
-                submittedAt: new Date('2024-02-14T11:45:00Z')
-              }
-            ];
-
-            await dbInsertBallotSubmissions(seedSubmissions);
-            fetchedSubmissions = seedSubmissions;
+            await dbInsertBallotSubmissions(SEED_SUBMISSIONS);
+            fetchedSubmissions = SEED_SUBMISSIONS;
           }
 
           const votedUserIds = new Set(fetchedSubmissions.map(s => s.voterId));
@@ -153,13 +182,10 @@ export function useAppState() {
     };
 
     loadData();
-  }, []);
+  }, [setState]);
+}
 
-  const setCurrentPage = useCallback((page: PageRoute) => {
-    setState(prev => ({ ...prev, currentPage: page }));
-  }, []);
-
-  // Identity Actions
+function useIdentityActions(setState: Dispatch<SetStateAction<AppState>>) {
   const completeVerificationStep = useCallback((step: VerificationStep) => {
     setState(prev => {
       const newIdentity = { ...prev.identity };
@@ -182,7 +208,7 @@ export function useAppState() {
 
       return { ...prev, identity: newIdentity };
     });
-  }, []);
+  }, [setState]);
 
   const addVouchToken = useCallback((token: VouchToken) => {
     setState(prev => {
@@ -198,7 +224,7 @@ export function useAppState() {
         },
       };
     });
-  }, []);
+  }, [setState]);
 
   const triggerFraudStrike = useCallback((reason: string) => {
     setState(prev => {
@@ -217,7 +243,7 @@ export function useAppState() {
         },
       };
     });
-  }, []);
+  }, [setState]);
 
   const freezeAccount = useCallback((reason: string) => {
     setState(prev => ({
@@ -230,16 +256,19 @@ export function useAppState() {
         fraudStrikes: 3,
       },
     }));
-  }, []);
+  }, [setState]);
 
   const resetIdentity = useCallback(() => {
     setState(prev => ({
       ...prev,
       identity: INITIAL_IDENTITY,
     }));
-  }, []);
+  }, [setState]);
 
-  // Proposal Compiler Actions
+  return { completeVerificationStep, addVouchToken, triggerFraudStrike, freezeAccount, resetIdentity };
+}
+
+function useProposalActions(setState: Dispatch<SetStateAction<AppState>>) {
   const checkLaw1Violations = useCallback((content: string): string[] => {
     const violations: string[] = [];
     const lowerContent = content.toLowerCase();
@@ -281,10 +310,12 @@ export function useAppState() {
     }));
 
     return newProposal;
-  }, [checkLaw1Violations]);
+  }, [checkLaw1Violations, setState]);
 
+  return { checkLaw1Violations, submitProposal };
+}
 
-  // RCV Voting Actions
+function useVotingActions(setState: Dispatch<SetStateAction<AppState>>) {
   const submitBallot = useCallback((submission: Omit<BallotSubmission, 'submittedAt'>) => {
     const newSubmission: BallotSubmission = {
       ...submission,
@@ -330,14 +361,14 @@ export function useAppState() {
         ballotOptions: newBallotOptions,
       };
     });
-  }, []);
+  }, [setState]);
 
   const runRCVSimulation = useCallback(() => {
     setState(prev => {
       const result = calculateRCVResult(prev.ballotOptions, prev.ballotSubmissions);
       return { ...prev, rcvResult: result };
     });
-  }, []);
+  }, [setState]);
 
   const generateMockVotes = useCallback((count: number) => {
     setState(prev => {
@@ -423,7 +454,7 @@ export function useAppState() {
         ballotOptions: newBallotOptions,
       };
     });
-  }, []);
+  }, [setState]);
 
   const resetVoting = useCallback(() => {
     if (isSupabaseConfigured) {
@@ -439,25 +470,33 @@ export function useAppState() {
       rcvResult: null,
       testAccounts: MOCK_TEST_ACCOUNTS.map(acc => ({ ...acc, hasVoted: false, writeIns: [] })),
     }));
+  }, [setState]);
+
+  return { submitBallot, runRCVSimulation, generateMockVotes, resetVoting };
+}
+
+export function useAppState() {
+  const [state, setState] = useState<AppState>(initialState);
+
+  useDataSync(setState);
+
+  const setCurrentPage = useCallback((page: PageRoute) => {
+    setState(prev => ({ ...prev, currentPage: page }));
   }, []);
+
+  const identityActions = useIdentityActions(setState);
+
+  const proposalActions = useProposalActions(setState);
+
+
+  const votingActions = useVotingActions(setState);
 
   return {
     state,
     setCurrentPage,
-    // Identity
-    completeVerificationStep,
-    addVouchToken,
-    triggerFraudStrike,
-    freezeAccount,
-    resetIdentity,
-    // Proposals
-    submitProposal,
-    checkLaw1Violations,
-    // Voting
-    submitBallot,
-    runRCVSimulation,
-    generateMockVotes,
-    resetVoting,
+    ...identityActions,
+    ...proposalActions,
+    ...votingActions,
   };
 }
 

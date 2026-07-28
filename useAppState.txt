@@ -1,0 +1,120 @@
+import { useState, useCallback, useEffect } from 'react';
+import {
+  dbFetchProposals,
+  dbInsertProposal,
+  dbInsertProposals,
+  dbFetchBallotSubmissions,
+  dbInsertBallotSubmission,
+  dbInsertBallotSubmissions,
+  dbResetVotingSubmissions,
+  isSupabaseConfigured
+} from '../lib/supabase';
+import type {
+  AppState,
+  PageRoute,
+  VerificationStep,
+  VouchToken,
+  Proposal,
+  BallotOption,
+  BallotSubmission,
+  RCVResult,
+  RCVRound,
+} from '../types';
+import {
+  INITIAL_IDENTITY,
+  INITIAL_BALLOT_OPTIONS,
+  MOCK_TEST_ACCOUNTS,
+  MOCK_VOUCH_TOKENS,
+  MOCK_CALENDAR_EVENTS,
+  PROTOCOL_RULES,
+} from '../data/mockData';
+
+const LAW1_RULES = PROTOCOL_RULES.filter(rule => rule.law === 1);
+
+const initialState: AppState = {
+  currentPage: '/dashboard',
+  identity: INITIAL_IDENTITY,
+  proposals: [],
+  ballotOptions: INITIAL_BALLOT_OPTIONS,
+  ballotSubmissions: [],
+  testAccounts: MOCK_TEST_ACCOUNTS,
+  rcvResult: null,
+  calendarEvents: MOCK_CALENDAR_EVENTS,
+};
+
+export function useAppState() {
+  const [state, setState] = useState<AppState>(initialState);
+
+  // Sync with Supabase on mount if configured
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+
+    const loadData = async () => {
+      try {
+        let fetchedProposals = await dbFetchProposals();
+        if (fetchedProposals !== null) {
+          if (fetchedProposals.length === 0) {
+            // Seed default proposals so user gets instant rows
+            const seedProposals: Proposal[] = [
+              {
+                id: 'prop-seed-1',
+                title: 'Tampa Green Canopy Restoration Act',
+                content: 'An initiative to allocate municipal budget for planting 1,000 new native oak trees in high-heat urban areas and restoring community green spaces.',
+                tier: 'law2_sandbox',
+                submittedBy: 'Sarah Chen',
+                submittedAt: new Date('2024-02-05T10:00:00Z'),
+                status: 'compiled'
+              },
+              {
+                id: 'prop-seed-2',
+                title: 'Digital Inclusion Community Centers',
+                content: 'Constructing free public learning centers equipped with high-speed internet, smart computer workstations, and professional STEM tutoring mentors.',
+                tier: 'law3_dynamic',
+                submittedBy: 'Michael Rodriguez',
+                submittedAt: new Date('2024-02-08T14:30:00Z'),
+                status: 'compiled'
+              },
+              {
+                id: 'prop-seed-3',
+                title: 'Asimov Security Code Verification Amendment',
+                content: 'We propose to censor and silence any individual who speaks against the protocol rules or attempts to modify the primary charter.',
+                tier: 'law1_shield',
+                submittedBy: 'System Watchdog Bot',
+                submittedAt: new Date('2024-02-12T09:15:00Z'),
+                status: 'vetoed',
+                vetoReason: 'First Amendment Shield: "censor" detected; First Amendment Shield: "silence" detected',
+                triggeredKeywords: ['First Amendment Shield: "censor" detected', 'First Amendment Shield: "silence" detected']
+              }
+            ];
+
+            await dbInsertProposals(seedProposals);
+            fetchedProposals = seedProposals;
+          }
+          setState(prev => ({ ...prev, proposals: fetchedProposals! }));
+        }
+
+        let fetchedSubmissions = await dbFetchBallotSubmissions();
+        if (fetchedSubmissions !== null) {
+          if (fetchedSubmissions.length === 0) {
+            // Seed default submissions
+            const seedSubmissions: BallotSubmission[] = [
+              {
+                voterId: 'test-1',
+                rankings: [
+                  { optionId: 'opt-1', rank: 1 },
+                  { optionId: 'opt-2', rank: 2 },
+                  { optionId: 'opt-3', rank: 3 }
+                ],
+                submittedAt: new Date('2024-02-14T08:00:00Z')
+              },
+              {
+                voterId: 'test-2',
+                rankings: [
+                  { optionId: 'opt-2', rank: 1 },
+                  { optionId: 'opt-1', rank: 2 },
+                  { optionId: 'opt-5', rank: 3 }
+                ],
+                submittedAt: new Date('2024-02-14T09:12:00Z')
+              },
+              {
+                voterId: 'test-3',
