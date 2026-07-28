@@ -56,7 +56,7 @@ describe('DatabaseStatusModal', () => {
       error: null
     });
     const mockFrom = vi.fn().mockReturnValue({ select: mockSelect });
-    supabase.from = mockFrom as any;
+    supabase.from = mockFrom as unknown as typeof supabase.from;
 
     render(<DatabaseStatusModal isOpen={true} onClose={onCloseMock} />);
 
@@ -86,7 +86,7 @@ describe('DatabaseStatusModal', () => {
       error: { message: 'relation "public.proposals" does not exist' }
     });
     const mockFrom = vi.fn().mockReturnValue({ select: mockSelect });
-    supabase.from = mockFrom as any;
+    supabase.from = mockFrom as unknown as typeof supabase.from;
 
     render(<DatabaseStatusModal isOpen={true} onClose={onCloseMock} />);
 
@@ -105,7 +105,7 @@ describe('DatabaseStatusModal', () => {
       error: { message: 'Some general database error' }
     });
     const mockFrom = vi.fn().mockReturnValue({ select: mockSelect });
-    supabase.from = mockFrom as any;
+    supabase.from = mockFrom as unknown as typeof supabase.from;
 
     render(<DatabaseStatusModal isOpen={true} onClose={onCloseMock} />);
 
@@ -134,7 +134,6 @@ describe('DatabaseStatusModal', () => {
   it('calls onClose when close button is clicked', async () => {
     render(<DatabaseStatusModal isOpen={true} onClose={onCloseMock} />);
 
-    const closeButtons = screen.getAllByRole('button');
     // The "Close Manager" button is typically the last one or by text
     const closeManagerButton = screen.getByRole('button', { name: /Close Manager/i });
     await userEvent.click(closeManagerButton);
