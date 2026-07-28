@@ -23,6 +23,241 @@ interface CompilerPageProps {
   onCheckViolations: (content: string) => string[];
 }
 
+
+function LawsOverview() {
+  return (
+    <div className="card p-6">
+      <h2 className="text-lg font-semibold text-primary-200 mb-4 flex items-center gap-2">
+        <Shield className="w-5 h-5" />
+        Asimov's Three Laws of Governance
+      </h2>
+      <div className="grid grid-cols-3 gap-4">
+        <div className="card-elevated p-4 border-danger-500/30">
+          <div className="flex items-center gap-3 mb-2">
+            <Lock className="w-5 h-5 text-danger-400" />
+            <h3 className="font-semibold text-danger-300">Law 1: The Shield</h3>
+          </div>
+          <p className="text-sm text-primary-400">Inalienable individual rights</p>
+          <p className="text-xs text-primary-500 mt-2">1st, 2nd, 4th, 5th, 14th Amendments</p>
+        </div>
+        <div className="card-elevated p-4 border-success-500/30">
+          <div className="flex items-center gap-3 mb-2">
+            <Unlock className="w-5 h-5 text-success-400" />
+            <h3 className="font-semibold text-success-300">Law 2: The Sandbox</h3>
+          </div>
+          <p className="text-sm text-primary-400">Local community logistics</p>
+          <p className="text-xs text-primary-500 mt-2">Budget, zoning, public services</p>
+        </div>
+        <div className="card-elevated p-4 border-accent-500/30">
+          <div className="flex items-center gap-3 mb-2">
+            <FileCode className="w-5 h-5 text-accent-400" />
+            <h3 className="font-semibold text-accent-300">Law 3: Dynamic</h3>
+          </div>
+          <p className="text-sm text-primary-400">Citizen write-in proposals</p>
+          <p className="text-xs text-primary-500 mt-2">Other submissions by citizens</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+function RulesReference() {
+  const [activeRuleTab, setActiveRuleTab] = useState<'law1' | 'law2' | 'law3'>('law1');
+
+  const law1Rules = PROTOCOL_RULES.filter(r => r.law === 1);
+  const law2Rules = PROTOCOL_RULES.filter(r => r.law === 2);
+  const law3Rules = PROTOCOL_RULES.filter(r => r.law === 3);
+
+  return (
+    <div className="card p-6">
+      <div className="flex gap-4 mb-4">
+        {['law1', 'law2', 'law3'].map(tier => (
+          <button
+            key={tier}
+            onClick={() => setActiveRuleTab(tier as typeof activeRuleTab)}
+            className={`btn ${
+              activeRuleTab === tier
+                ? tier === 'law1'
+                  ? 'bg-danger-500/20 text-danger-300 border-danger-500/30'
+                  : tier === 'law2'
+                  ? 'bg-success-500/20 text-success-300 border-success-500/30'
+                  : 'bg-accent-500/20 text-accent-300 border-accent-500/30'
+                : 'btn-ghost'
+            }`}
+          >
+            {tier === 'law1' ? 'Law 1 Rules' : tier === 'law2' ? 'Law 2 Rules' : 'Law 3 Rules'}
+          </button>
+        ))}
+      </div>
+
+      <div className="space-y-3">
+        {(activeRuleTab === 'law1'
+          ? law1Rules
+          : activeRuleTab === 'law2'
+          ? law2Rules
+          : law3Rules
+        ).map(rule => (
+          <div
+            key={rule.id}
+            className={`p-4 rounded-lg ${
+              rule.isProtected
+                ? 'bg-danger-500/10 border border-danger-500/30'
+                : 'bg-primary-800/50 border border-primary-700/30'
+            }`}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="font-medium text-primary-200">{rule.name}</h4>
+              {rule.isProtected ? (
+                <span className="badge-danger">Protected</span>
+              ) : (
+                <span className="badge-success">RCV Eligible</span>
+              )}
+            </div>
+            <p className="text-sm text-primary-400">{rule.description}</p>
+            {rule.keywords.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {rule.keywords.map(kw => (
+                  <span key={kw} className="text-xs bg-primary-700/50 text-primary-300 px-2 py-1 rounded">
+                    "{kw}"
+                  </span>
+                ))}
+              </div>
+              )}
+            </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+
+function ProposalHistory({ proposals }: { proposals: Proposal[] }) {
+  if (proposals.length === 0) return null;
+
+  return (
+    <div className="card p-6">
+      <h2 className="text-lg font-semibold text-primary-200 mb-4">Proposal History</h2>
+      <div className="space-y-3">
+        {proposals.map(p => (
+          <div key={p.id} className="card-elevated p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="font-medium text-primary-200">{p.title}</h4>
+              {p.status === 'compiled' ? (
+                <span className="badge-success">Compiled</span>
+              ) : (
+                <span className="badge-danger">Vetoed</span>
+              )}
+            </div>
+            <p className="text-sm text-primary-400 line-clamp-2">{p.content}</p>
+            {p.vetoReason && (
+              <div className="mt-2 flex items-center gap-2 text-xs text-danger-400">
+                <AlertCircle className="w-3 h-3" />
+                {p.vetoReason}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+
+interface CompilerOutputProps {
+  compileResult: {
+    success: boolean;
+    violations: string[];
+    proposal?: Proposal;
+  } | null;
+  content: string;
+  getTierInfo: (tier: string) => { label: string; icon: React.ElementType; color: string; desc: string };
+  highlightViolations: (text: string, violations: string[]) => string;
+}
+
+function CompilerOutput({ compileResult, content, getTierInfo, highlightViolations }: CompilerOutputProps) {
+  return (
+    <div className="card p-6">
+      <h2 className="text-lg font-semibold text-primary-200 mb-4 flex items-center gap-2">
+        <FileCode className="w-5 h-5" />
+        Compiler Output
+      </h2>
+
+      {!compileResult ? (
+        <div className="text-center py-16 text-primary-500">
+          <Code2 className="w-12 h-12 mx-auto mb-4 opacity-50" />
+          <p>Compile a proposal to see results</p>
+        </div>
+      ) : compileResult.success ? (
+        <div className="animate-in">
+          <div className="flex items-center gap-3 mb-4">
+            <CheckCircle2 className="w-8 h-8 text-success-400" />
+            <div>
+              <h3 className="text-lg font-semibold text-success-400">Compilation Successful</h3>
+              <p className="text-sm text-primary-400">Proposal compiled and ready for ballot</p>
+            </div>
+          </div>
+
+          <div className="card-elevated p-4 space-y-3">
+            <div>
+              <span className="text-xs text-primary-500">Proposal ID</span>
+              <p className="font-mono text-primary-300">{compileResult.proposal?.id}</p>
+            </div>
+            <div>
+              <span className="text-xs text-primary-500">Title</span>
+              <p className="text-primary-200">{compileResult.proposal?.title}</p>
+            </div>
+            <div>
+              <span className="text-xs text-primary-500">Tier</span>
+              <p className="text-primary-200">
+                {getTierInfo(compileResult.proposal?.tier || '').label}
+              </p>
+            </div>
+            <div>
+              <span className="text-xs text-primary-500">Status</span>
+              <span className="badge-success ml-2">Ballot Ready</span>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="animate-in">
+          <div className="flex items-center gap-3 mb-4">
+            <XCircle className="w-8 h-8 text-danger-400" />
+            <div>
+              <h3 className="text-lg font-semibold text-danger-400">Compilation Failed</h3>
+              <p className="text-sm text-primary-400">Proposal vetoed by Law 1 Shield</p>
+            </div>
+          </div>
+
+          <div className="card-elevated p-4 space-y-4 border-danger-500/30">
+            <div>
+              <span className="text-xs text-primary-500">Veto Reason</span>
+              <div className="mt-2 space-y-2">
+                {compileResult.violations.map((v, i) => (
+                  <div key={i} className="flex items-start gap-2">
+                    <ShieldAlert className="w-4 h-4 text-danger-400 mt-0.5" />
+                    <span className="text-danger-300 text-sm">{v}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <span className="text-xs text-primary-500">Violating Content</span>
+              <div
+                className="mt-2 p-3 bg-danger-500/10 rounded-lg font-mono text-sm text-primary-300"
+                dangerouslySetInnerHTML={{
+                  __html: highlightViolations(content, compileResult.violations),
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function CompilerPage({
   proposals,
   onSubmitProposal,
@@ -39,7 +274,6 @@ export function CompilerPage({
     violations: string[];
     proposal?: Proposal;
   } | null>(null);
-  const [activeRuleTab, setActiveRuleTab] = useState<'law1' | 'law2' | 'law3'>('law1');
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
@@ -83,9 +317,6 @@ export function CompilerPage({
     }
   };
 
-  const law1Rules = PROTOCOL_RULES.filter(r => r.law === 1);
-  const law2Rules = PROTOCOL_RULES.filter(r => r.law === 2);
-  const law3Rules = PROTOCOL_RULES.filter(r => r.law === 3);
 
   const handleCompile = async () => {
     setIsCompiling(true);
@@ -162,98 +393,10 @@ export function CompilerPage({
       </div>
 
       {/* Asimov's Laws Overview */}
-      <div className="card p-6">
-        <h2 className="text-lg font-semibold text-primary-200 mb-4 flex items-center gap-2">
-          <Shield className="w-5 h-5" />
-          Asimov's Three Laws of Governance
-        </h2>
-        <div className="grid grid-cols-3 gap-4">
-          <div className="card-elevated p-4 border-danger-500/30">
-            <div className="flex items-center gap-3 mb-2">
-              <Lock className="w-5 h-5 text-danger-400" />
-              <h3 className="font-semibold text-danger-300">Law 1: The Shield</h3>
-            </div>
-            <p className="text-sm text-primary-400">Inalienable individual rights</p>
-            <p className="text-xs text-primary-500 mt-2">1st, 2nd, 4th, 5th, 14th Amendments</p>
-          </div>
-          <div className="card-elevated p-4 border-success-500/30">
-            <div className="flex items-center gap-3 mb-2">
-              <Unlock className="w-5 h-5 text-success-400" />
-              <h3 className="font-semibold text-success-300">Law 2: The Sandbox</h3>
-            </div>
-            <p className="text-sm text-primary-400">Local community logistics</p>
-            <p className="text-xs text-primary-500 mt-2">Budget, zoning, public services</p>
-          </div>
-          <div className="card-elevated p-4 border-accent-500/30">
-            <div className="flex items-center gap-3 mb-2">
-              <FileCode className="w-5 h-5 text-accent-400" />
-              <h3 className="font-semibold text-accent-300">Law 3: Dynamic</h3>
-            </div>
-            <p className="text-sm text-primary-400">Citizen write-in proposals</p>
-            <p className="text-xs text-primary-500 mt-2">Other submissions by citizens</p>
-          </div>
-        </div>
-      </div>
+      <LawsOverview />
 
       {/* Protocol Rules Reference */}
-      <div className="card p-6">
-        <div className="flex gap-4 mb-4">
-          {['law1', 'law2', 'law3'].map(tier => (
-            <button
-              key={tier}
-              onClick={() => setActiveRuleTab(tier as typeof activeRuleTab)}
-              className={`btn ${
-                activeRuleTab === tier
-                  ? tier === 'law1'
-                    ? 'bg-danger-500/20 text-danger-300 border-danger-500/30'
-                    : tier === 'law2'
-                    ? 'bg-success-500/20 text-success-300 border-success-500/30'
-                    : 'bg-accent-500/20 text-accent-300 border-accent-500/30'
-                  : 'btn-ghost'
-              }`}
-            >
-              {tier === 'law1' ? 'Law 1 Rules' : tier === 'law2' ? 'Law 2 Rules' : 'Law 3 Rules'}
-            </button>
-          ))}
-        </div>
-
-        <div className="space-y-3">
-          {(activeRuleTab === 'law1'
-            ? law1Rules
-            : activeRuleTab === 'law2'
-            ? law2Rules
-            : law3Rules
-          ).map(rule => (
-            <div
-              key={rule.id}
-              className={`p-4 rounded-lg ${
-                rule.isProtected
-                  ? 'bg-danger-500/10 border border-danger-500/30'
-                  : 'bg-primary-800/50 border border-primary-700/30'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="font-medium text-primary-200">{rule.name}</h4>
-                {rule.isProtected ? (
-                  <span className="badge-danger">Protected</span>
-                ) : (
-                  <span className="badge-success">RCV Eligible</span>
-                )}
-              </div>
-              <p className="text-sm text-primary-400">{rule.description}</p>
-              {rule.keywords.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {rule.keywords.map(kw => (
-                    <span key={kw} className="text-xs bg-primary-700/50 text-primary-300 px-2 py-1 rounded">
-                      "{kw}"
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
+      <RulesReference />
 
       {/* Compiler Interface */}
       <div className="grid grid-cols-2 gap-6">
@@ -388,113 +531,11 @@ export function CompilerPage({
         </div>
 
         {/* Output */}
-        <div className="card p-6">
-          <h2 className="text-lg font-semibold text-primary-200 mb-4 flex items-center gap-2">
-            <FileCode className="w-5 h-5" />
-            Compiler Output
-          </h2>
-
-          {!compileResult ? (
-            <div className="text-center py-16 text-primary-500">
-              <Code2 className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>Compile a proposal to see results</p>
-            </div>
-          ) : compileResult.success ? (
-            <div className="animate-in">
-              <div className="flex items-center gap-3 mb-4">
-                <CheckCircle2 className="w-8 h-8 text-success-400" />
-                <div>
-                  <h3 className="text-lg font-semibold text-success-400">Compilation Successful</h3>
-                  <p className="text-sm text-primary-400">Proposal compiled and ready for ballot</p>
-                </div>
-              </div>
-
-              <div className="card-elevated p-4 space-y-3">
-                <div>
-                  <span className="text-xs text-primary-500">Proposal ID</span>
-                  <p className="font-mono text-primary-300">{compileResult.proposal?.id}</p>
-                </div>
-                <div>
-                  <span className="text-xs text-primary-500">Title</span>
-                  <p className="text-primary-200">{compileResult.proposal?.title}</p>
-                </div>
-                <div>
-                  <span className="text-xs text-primary-500">Tier</span>
-                  <p className="text-primary-200">
-                    {getTierInfo(compileResult.proposal?.tier || '').label}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-xs text-primary-500">Status</span>
-                  <span className="badge-success ml-2">Ballot Ready</span>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="animate-in">
-              <div className="flex items-center gap-3 mb-4">
-                <XCircle className="w-8 h-8 text-danger-400" />
-                <div>
-                  <h3 className="text-lg font-semibold text-danger-400">Compilation Failed</h3>
-                  <p className="text-sm text-primary-400">Proposal vetoed by Law 1 Shield</p>
-                </div>
-              </div>
-
-              <div className="card-elevated p-4 space-y-4 border-danger-500/30">
-                <div>
-                  <span className="text-xs text-primary-500">Veto Reason</span>
-                  <div className="mt-2 space-y-2">
-                    {compileResult.violations.map((v, i) => (
-                      <div key={i} className="flex items-start gap-2">
-                        <ShieldAlert className="w-4 h-4 text-danger-400 mt-0.5" />
-                        <span className="text-danger-300 text-sm">{v}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <span className="text-xs text-primary-500">Violating Content</span>
-                  <div
-                    className="mt-2 p-3 bg-danger-500/10 rounded-lg font-mono text-sm text-primary-300"
-                    dangerouslySetInnerHTML={{
-                      __html: highlightViolations(content, compileResult.violations),
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
+        <CompilerOutput compileResult={compileResult} content={content} getTierInfo={getTierInfo} highlightViolations={highlightViolations} />
       </div>
 
       {/* Proposal History */}
-      {proposals.length > 0 && (
-        <div className="card p-6">
-          <h2 className="text-lg font-semibold text-primary-200 mb-4">Proposal History</h2>
-          <div className="space-y-3">
-            {proposals.map(p => (
-              <div key={p.id} className="card-elevated p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-medium text-primary-200">{p.title}</h4>
-                  {p.status === 'compiled' ? (
-                    <span className="badge-success">Compiled</span>
-                  ) : (
-                    <span className="badge-danger">Vetoed</span>
-                  )}
-                </div>
-                <p className="text-sm text-primary-400 line-clamp-2">{p.content}</p>
-                {p.vetoReason && (
-                  <div className="mt-2 flex items-center gap-2 text-xs text-danger-400">
-                    <AlertCircle className="w-3 h-3" />
-                    {p.vetoReason}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      <ProposalHistory proposals={proposals} />
     </div>
   );
 }
