@@ -134,7 +134,7 @@ describe('DatabaseStatusModal', () => {
   it('calls onClose when close button is clicked', async () => {
     render(<DatabaseStatusModal isOpen={true} onClose={onCloseMock} />);
 
-    const closeButtons = screen.getAllByRole('button');
+    screen.getAllByRole('button');
     // The "Close Manager" button is typically the last one or by text
     const closeManagerButton = screen.getByRole('button', { name: /Close Manager/i });
     await userEvent.click(closeManagerButton);
