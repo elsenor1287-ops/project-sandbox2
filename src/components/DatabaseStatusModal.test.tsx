@@ -56,8 +56,7 @@ describe('DatabaseStatusModal', () => {
       error: null
     });
     const mockFrom = vi.fn().mockReturnValue({ select: mockSelect });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    supabase.from = mockFrom as any;
+    supabase.from = mockFrom as unknown as typeof supabase.from;
 
     render(<DatabaseStatusModal isOpen={true} onClose={onCloseMock} />);
 
@@ -87,8 +86,7 @@ describe('DatabaseStatusModal', () => {
       error: { message: 'relation "public.proposals" does not exist' }
     });
     const mockFrom = vi.fn().mockReturnValue({ select: mockSelect });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    supabase.from = mockFrom as any;
+    supabase.from = mockFrom as unknown as typeof supabase.from;
 
     render(<DatabaseStatusModal isOpen={true} onClose={onCloseMock} />);
 
@@ -107,8 +105,7 @@ describe('DatabaseStatusModal', () => {
       error: { message: 'Some general database error' }
     });
     const mockFrom = vi.fn().mockReturnValue({ select: mockSelect });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    supabase.from = mockFrom as any;
+    supabase.from = mockFrom as unknown as typeof supabase.from;
 
     render(<DatabaseStatusModal isOpen={true} onClose={onCloseMock} />);
 
