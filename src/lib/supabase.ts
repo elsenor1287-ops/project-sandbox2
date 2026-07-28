@@ -1,8 +1,27 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Proposal, BallotSubmission } from '../types';
 
+function isServiceRoleKey(key: string): boolean {
+  if (!key) return false;
+  try {
+    const parts = key.split('.');
+    if (parts.length !== 3) return false;
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const decoded = typeof atob === 'function' ? atob(base64) : Buffer.from(base64, 'base64').toString('utf8');
+    const payload = JSON.parse(decoded);
+    return payload.role === 'service_role';
+  } catch {
+    return false;
+  }
+}
+
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+let supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+
+if (isServiceRoleKey(supabaseAnonKey)) {
+  console.error('CRITICAL SECURITY ERROR: VITE_SUPABASE_ANON_KEY is a service_role key. This is a severe security risk and will expose your entire database. The Supabase client has been disabled.');
+  supabaseAnonKey = '';
+}
 
 // Supabase client initialization. Note that the client won't work correctly
 // for real API requests if the anon key is empty or default, so we check configurations.
