@@ -158,7 +158,7 @@ export function DatabaseStatusModal({ isOpen, onClose }: DatabaseStatusModalProp
               <div>
                 <h3 className="text-sm font-semibold text-primary-100">Integration Configuration</h3>
                 <p className="text-xs text-primary-400 mt-0.5">
-                  Connected endpoint: <code className="text-primary-300 font-mono text-xs break-all">https://offsicarzljenjrzfant.supabase.co</code>
+                  Connected endpoint: <code className="text-primary-300 font-mono text-xs break-all">{import.meta.env.VITE_SUPABASE_URL || 'Not configured'}</code>
                 </p>
               </div>
               <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-primary-950 border border-primary-700">
