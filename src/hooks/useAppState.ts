@@ -2,7 +2,6 @@ import { useState, useCallback, useEffect } from 'react';
 import { 
   dbFetchProposals, 
   dbInsertProposal,
-  dbInsertProposals,
   dbFetchBallotSubmissions, 
   dbInsertBallotSubmission, 
   dbInsertBallotSubmissions,
@@ -87,7 +86,9 @@ export function useAppState() {
               }
             ];
 
-            await dbInsertProposals(seedProposals);
+            for (const proposal of seedProposals) {
+              await dbInsertProposal(proposal);
+            }
             fetchedProposals = seedProposals;
           }
           setState(prev => ({ ...prev, proposals: fetchedProposals! }));

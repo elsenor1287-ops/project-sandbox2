@@ -1,12 +1,14 @@
 import { performance } from 'perf_hooks';
 
 // Simulated Supabase upsert function
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
 const simulateUpsert = async (records: any[]) => {
   // Simulate a 20ms network latency per database call
   await new Promise(resolve => setTimeout(resolve, 20));
   return { error: null };
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function baseline(records: any[]) {
   const start = performance.now();
   for (const record of records) {
@@ -16,6 +18,7 @@ async function baseline(records: any[]) {
   return end - start;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function optimized(records: any[]) {
   const start = performance.now();
   await simulateUpsert(records);
