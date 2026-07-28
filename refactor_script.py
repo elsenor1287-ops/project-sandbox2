@@ -1,26 +1,13 @@
-import {
-  Fingerprint,
-  FileText,
-  Users,
-  CheckCircle2,
-  Shield,
-  ShieldAlert,
-  ShieldX,
-  Scan,
-  RefreshCw,
-} from 'lucide-react';
-import React from 'react';
-import type { IdentityState, VerificationStep, VouchToken } from '../types';
+import re
 
-interface IdentityPageProps {
-  identity: IdentityState;
-  onCompleteStep: (step: VerificationStep) => void;
-  onTriggerFraud: (reason: string) => void;
-  onFreezeAccount: (reason: string) => void;
-  onResetIdentity: () => void;
-}
+with open('src/components/IdentityVerification.tsx', 'r') as f:
+    content = f.read()
 
-
+# Replace the long function with subcomponents
+new_content = content.replace("""export function IdentityPage({
+  identity,
+  onCompleteStep,
+}: IdentityPageProps) {""", """
 // Subcomponents
 
 interface ActiveVouchRequestsProps {
@@ -225,7 +212,7 @@ function VerificationPipeline({ identity, isScanning, onScan, verificationSteps 
 }
 
 interface VouchTokensListProps {
-  vouchTokens: VouchToken[];
+  vouchTokens: any[]; // Use any or import VouchToken if possible
 }
 
 function VouchTokensList({ vouchTokens }: VouchTokensListProps) {
@@ -241,7 +228,7 @@ function VouchTokensList({ vouchTokens }: VouchTokensListProps) {
         </div>
       ) : (
         <div className="grid grid-cols-3 gap-4">
-          {vouchTokens.map((token) => (
+          {vouchTokens.map((token: any) => (
             <div
               key={token.id}
               className="card-elevated p-4 flex items-center gap-4"
@@ -267,75 +254,8 @@ function VouchTokensList({ vouchTokens }: VouchTokensListProps) {
 export function IdentityPage({
   identity,
   onCompleteStep,
-}: IdentityPageProps) {
-  const [isScanning, setIsScanning] = React.useState(false);
-  const [isVouched, setIsVouched] = React.useState(false);
-  const [isVouchingInProgress, setIsVouchingInProgress] = React.useState(false);
+}: IdentityPageProps) {""")
 
-  const handleVerifyNeighbor = async () => {
-    setIsVouchingInProgress(true);
-    await new Promise(r => setTimeout(r, 1200));
-    setIsVouched(true);
-    setIsVouchingInProgress(false);
-  };
 
-  const handleScan = async () => {
-    setIsScanning(true);
-    await new Promise(r => setTimeout(r, 2000));
-    setIsScanning(false);
-    onCompleteStep('passport');
-  };
-
-  const verificationSteps = [
-    {
-      id: 'passport',
-      label: 'Passport Biometric',
-      icon: Scan,
-      isComplete: identity.passportVerified,
-      isCurrent: identity.verificationStep === 'passport',
-    },
-    {
-      id: 'utility',
-      label: 'Utility Bill Credential',
-      icon: FileText,
-      isComplete: identity.utilityVerified,
-      isCurrent: identity.verificationStep === 'utility',
-    },
-    {
-      id: 'vouching',
-      label: 'Peer Vouching (3 Neighbors)',
-      icon: Users,
-      isComplete: identity.status === 'active',
-      isCurrent: identity.verificationStep === 'vouching',
-    },
-  ];
-
-  return (
-    <div className="p-8 space-y-8">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gradient">Identity Wallet</h1>
-          <p className="text-primary-400 mt-1">Self-sovereign credential verification</p>
-        </div>
-      </div>
-
-      <ActiveVouchRequests
-        isVouched={isVouched}
-        isVouchingInProgress={isVouchingInProgress}
-        onVerifyNeighbor={handleVerifyNeighbor}
-      />
-
-      <StatusCard identity={identity} />
-
-      <VerificationPipeline
-        identity={identity}
-        isScanning={isScanning}
-        onScan={handleScan}
-        verificationSteps={verificationSteps}
-      />
-
-      <VouchTokensList vouchTokens={identity.vouchTokens} />
-    </div>
-  );
-}
+with open('src/components/IdentityVerification.tsx', 'w') as f:
+    f.write(new_content)

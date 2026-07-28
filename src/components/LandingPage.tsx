@@ -86,22 +86,7 @@ export function LandingPage({ onEnterDashboard }: LandingPageProps) {
       />
 
       {/* Header */}
-      <header className="relative z-10 flex items-center justify-between px-6 sm:px-10 pt-6 pb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-7 h-7 rounded border border-slate-600 flex items-center justify-center">
-            <ShieldCheck className="w-4 h-4 text-slate-300" strokeWidth={1.5} />
-          </div>
-          <span className="text-xs sm:text-sm font-bold tracking-[0.3em] text-slate-200 uppercase">
-            Sandbox Protocol
-          </span>
-        </div>
-        <div className="flex items-center gap-2 text-slate-500">
-          <Lock className="w-3.5 h-3.5" strokeWidth={1.5} />
-          <span className="text-[10px] tracking-widest uppercase font-medium hidden sm:inline">
-            E2E ZK Encrypted
-          </span>
-        </div>
-      </header>
+      <LandingHeader />
 
       {/* Thin separator */}
       <div className="relative z-10 mx-6 sm:mx-10 h-px bg-slate-800" />
@@ -115,71 +100,7 @@ export function LandingPage({ onEnterDashboard }: LandingPageProps) {
           }`}
         >
           {stage !== 'verified' && (
-            <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl shadow-black/40 overflow-hidden">
-              {/* Card top accent bar */}
-              <div className="h-1 w-full bg-gradient-to-r from-slate-700 via-slate-500 to-slate-700" />
-
-              <div className="px-8 sm:px-10 py-10">
-                {/* Icon */}
-                <div className="flex justify-center mb-6">
-                  <div className="w-14 h-14 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center">
-                    <Fingerprint className="w-7 h-7 text-slate-700" strokeWidth={1.5} />
-                  </div>
-                </div>
-
-                {/* Title */}
-                <div className="text-center mb-2">
-                  <p className="text-[10px] tracking-[0.25em] uppercase font-semibold text-slate-400 mb-2">
-                    Project Sandbox
-                  </p>
-                  <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight leading-tight">
-                    Civic Authentication Portal
-                  </h1>
-                  <p className="text-sm text-slate-500 mt-2 leading-relaxed">
-                    Sovereign identity verification via zero-knowledge proof protocol.
-                  </p>
-                </div>
-
-                <div className="mt-8">
-                  {stage === 'idle' && (
-                    <button
-                      onClick={startVerification}
-                      className="w-full bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white font-semibold text-sm tracking-wide py-4 px-6 rounded-xl transition-all duration-200 flex items-center justify-center gap-3 shadow-lg shadow-slate-900/30 group"
-                    >
-                      <Lock className="w-4 h-4 group-hover:scale-110 transition-transform duration-200" strokeWidth={2} />
-                      Verify Sovereign Identity (ZK-Shielded)
-                    </button>
-                  )}
-
-                  {stage === 'scanning' && (
-                    <div className="space-y-3 animate-in">
-                      {steps.map(step => (
-                        <VerificationStepRow key={step.id} step={step} />
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {stage === 'idle' && (
-                  <p className="text-center text-[10px] text-slate-400 mt-6 tracking-wide leading-relaxed">
-                    No biometric data transmitted to external servers
-                  </p>
-                )}
-              </div>
-
-              {/* Card bottom accent */}
-              <div className="bg-slate-50 border-t border-slate-100 px-8 sm:px-10 py-3 flex items-center justify-between">
-                <span className="text-[10px] text-slate-400 tracking-widest uppercase font-medium">
-                  ZK Protocol v2.4
-                </span>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-[10px] text-slate-400 tracking-widest uppercase font-medium">
-                    Secure Channel
-                  </span>
-                </div>
-              </div>
-            </div>
+            <AuthCard stage={stage} steps={steps} startVerification={startVerification} />
           )}
         </div>
 
@@ -194,12 +115,109 @@ export function LandingPage({ onEnterDashboard }: LandingPageProps) {
       </main>
 
       {/* Footer */}
-      <footer className="relative z-10 text-center px-6 pb-6 pt-2">
-        <p className="text-[11px] text-slate-600 leading-relaxed max-w-lg mx-auto tracking-wide">
-          This portal utilizes Zero-Knowledge (ZK) Cryptography. No biometric data or personal identifiers
-          are stored on external servers.
-        </p>
-      </footer>
+      <LandingFooter />
+    </div>
+  );
+}
+
+function LandingHeader() {
+  return (
+    <header className="relative z-10 flex items-center justify-between px-6 sm:px-10 pt-6 pb-4">
+      <div className="flex items-center gap-3">
+        <div className="w-7 h-7 rounded border border-slate-600 flex items-center justify-center">
+          <ShieldCheck className="w-4 h-4 text-slate-300" strokeWidth={1.5} />
+        </div>
+        <span className="text-xs sm:text-sm font-bold tracking-[0.3em] text-slate-200 uppercase">
+          Sandbox Protocol
+        </span>
+      </div>
+      <div className="flex items-center gap-2 text-slate-500">
+        <Lock className="w-3.5 h-3.5" strokeWidth={1.5} />
+        <span className="text-[10px] tracking-widest uppercase font-medium hidden sm:inline">
+          E2E ZK Encrypted
+        </span>
+      </div>
+    </header>
+  );
+}
+
+function LandingFooter() {
+  return (
+    <footer className="relative z-10 text-center px-6 pb-6 pt-2">
+      <p className="text-[11px] text-slate-600 leading-relaxed max-w-lg mx-auto tracking-wide">
+        This portal utilizes Zero-Knowledge (ZK) Cryptography. No biometric data or personal identifiers
+        are stored on external servers.
+      </p>
+    </footer>
+  );
+}
+
+function AuthCard({ stage, steps, startVerification }: { stage: FlowStage, steps: VerificationStep[], startVerification: () => void }) {
+  return (
+    <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl shadow-black/40 overflow-hidden">
+      {/* Card top accent bar */}
+      <div className="h-1 w-full bg-gradient-to-r from-slate-700 via-slate-500 to-slate-700" />
+
+      <div className="px-8 sm:px-10 py-10">
+        {/* Icon */}
+        <div className="flex justify-center mb-6">
+          <div className="w-14 h-14 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center">
+            <Fingerprint className="w-7 h-7 text-slate-700" strokeWidth={1.5} />
+          </div>
+        </div>
+
+        {/* Title */}
+        <div className="text-center mb-2">
+          <p className="text-[10px] tracking-[0.25em] uppercase font-semibold text-slate-400 mb-2">
+            Project Sandbox
+          </p>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight leading-tight">
+            Civic Authentication Portal
+          </h1>
+          <p className="text-sm text-slate-500 mt-2 leading-relaxed">
+            Sovereign identity verification via zero-knowledge proof protocol.
+          </p>
+        </div>
+
+        <div className="mt-8">
+          {stage === 'idle' && (
+            <button
+              onClick={startVerification}
+              className="w-full bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white font-semibold text-sm tracking-wide py-4 px-6 rounded-xl transition-all duration-200 flex items-center justify-center gap-3 shadow-lg shadow-slate-900/30 group"
+            >
+              <Lock className="w-4 h-4 group-hover:scale-110 transition-transform duration-200" strokeWidth={2} />
+              Verify Sovereign Identity (ZK-Shielded)
+            </button>
+          )}
+
+          {stage === 'scanning' && (
+            <div className="space-y-3 animate-in">
+              {steps.map(step => (
+                <VerificationStepRow key={step.id} step={step} />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {stage === 'idle' && (
+          <p className="text-center text-[10px] text-slate-400 mt-6 tracking-wide leading-relaxed">
+            No biometric data transmitted to external servers
+          </p>
+        )}
+      </div>
+
+      {/* Card bottom accent */}
+      <div className="bg-slate-50 border-t border-slate-100 px-8 sm:px-10 py-3 flex items-center justify-between">
+        <span className="text-[10px] text-slate-400 tracking-widest uppercase font-medium">
+          ZK Protocol v2.4
+        </span>
+        <div className="flex items-center gap-1.5">
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="text-[10px] text-slate-400 tracking-widest uppercase font-medium">
+            Secure Channel
+          </span>
+        </div>
+      </div>
     </div>
   );
 }
