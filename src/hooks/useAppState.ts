@@ -31,6 +31,14 @@ import {
 
 const LAW1_RULES = PROTOCOL_RULES.filter(rule => rule.law === 1);
 
+const PRECOMPUTED_LAW1_RULES = LAW1_RULES.map(rule => ({
+  name: rule.name,
+  keywords: rule.keywords.map(keyword => ({
+    original: keyword,
+    lower: keyword.toLowerCase(),
+  })),
+}));
+
 const SEED_PROPOSALS: Proposal[] = [
   {
     id: 'prop-seed-1',
@@ -273,10 +281,10 @@ function useProposalActions(setState: Dispatch<SetStateAction<AppState>>) {
     const violations: string[] = [];
     const lowerContent = content.toLowerCase();
 
-    LAW1_RULES.forEach(rule => {
+    PRECOMPUTED_LAW1_RULES.forEach(rule => {
       rule.keywords.forEach(keyword => {
-        if (lowerContent.includes(keyword.toLowerCase())) {
-          violations.push(`${rule.name}: "${keyword}" detected`);
+        if (lowerContent.includes(keyword.lower)) {
+          violations.push(`${rule.name}: "${keyword.original}" detected`);
         }
       });
     });
