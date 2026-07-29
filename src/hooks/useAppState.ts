@@ -514,6 +514,7 @@ export function calculateRCVResult(
 ): RCVResult {
   const rounds: RCVRound[] = [];
   let currentOptions = [...options];
+  const optionsMap = new Map(options.map(opt => [opt.id, opt]));
   let currentRankings = submissions.map(sub => [...sub.rankings].sort((a, b) => a.rank - b.rank));
 
   const totalVotes = submissions.length;
@@ -557,7 +558,7 @@ export function calculateRCVResult(
 
     // Check for winner
     if (maxVotes > threshold) {
-      winner = currentOptions.find(opt => opt.id === winnerId);
+      winner = winnerId ? optionsMap.get(winnerId) : undefined;
 
       rounds.push({
         roundNumber,
