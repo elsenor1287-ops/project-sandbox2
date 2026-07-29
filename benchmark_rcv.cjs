@@ -120,6 +120,7 @@ function optimizedCalculateRCVResult(
 
     currentOptions = currentOptions.filter(opt => opt.id !== loserId);
 
+    // THE FIX:
     const validIds = new Set(currentOptions.map(opt => opt.id));
     currentRankings = currentRankings.map(rankings =>
       rankings.filter(r => validIds.has(r.optionId))
