@@ -32,7 +32,7 @@ export const isSupabaseConfigured = Boolean(
 );
 
 export const supabase = createClient(
-  supabaseUrl || 'https://placeholder.supabase.co',
+  supabaseUrl || 'https://dummy.supabase.co',
   supabaseAnonKey || 'dummy-key'
 );
 
