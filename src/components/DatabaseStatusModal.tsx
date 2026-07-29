@@ -217,6 +217,7 @@ function StatusPanel({ isTesting, testResult, testConnection }: {
     </div>
   );
 }
+
 function SetupScriptPanel() {
   const [copied, setCopied] = useState(false);
 

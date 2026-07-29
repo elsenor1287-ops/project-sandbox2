@@ -31,6 +31,45 @@ import {
 
 const LAW1_RULES = PROTOCOL_RULES.filter(rule => rule.law === 1);
 
+const PRECOMPUTED_LAW1_RULES = LAW1_RULES.map(rule => ({
+  name: rule.name,
+  keywords: rule.keywords.map(keyword => ({
+    original: keyword,
+    lower: keyword.toLowerCase(),
+  })),
+}));
+
+const SEED_PROPOSALS: Proposal[] = [
+  {
+    id: 'prop-seed-1',
+    title: 'Tampa Green Canopy Restoration Act',
+    content: 'An initiative to allocate municipal budget for planting 1,000 new native oak trees in high-heat urban areas and restoring community green spaces.',
+    tier: 'law2_sandbox',
+    submittedBy: 'Sarah Chen',
+    submittedAt: new Date('2024-02-05T10:00:00Z'),
+    status: 'compiled'
+  },
+  {
+    id: 'prop-seed-2',
+    title: 'Digital Inclusion Community Centers',
+    content: 'Constructing free public learning centers equipped with high-speed internet, smart computer workstations, and professional STEM tutoring mentors.',
+    tier: 'law3_dynamic',
+    submittedBy: 'Michael Rodriguez',
+    submittedAt: new Date('2024-02-08T14:30:00Z'),
+    status: 'compiled'
+  },
+  {
+    id: 'prop-seed-3',
+    title: 'Asimov Security Code Verification Amendment',
+    content: 'We propose to censor and silence any individual who speaks against the protocol rules or attempts to modify the primary charter.',
+    tier: 'law1_shield',
+    submittedBy: 'System Watchdog Bot',
+    submittedAt: new Date('2024-02-12T09:15:00Z'),
+    status: 'vetoed',
+    vetoReason: 'First Amendment Shield: "censor" detected; First Amendment Shield: "silence" detected',
+    triggeredKeywords: ['First Amendment Shield: "censor" detected', 'First Amendment Shield: "silence" detected']
+  }
+];
 
 const SEED_SUBMISSIONS: BallotSubmission[] = [
   {
@@ -242,10 +281,10 @@ function useProposalActions(setState: Dispatch<SetStateAction<AppState>>) {
     const violations: string[] = [];
     const lowerContent = content.toLowerCase();
 
-    LAW1_RULES.forEach(rule => {
+    PRECOMPUTED_LAW1_RULES.forEach(rule => {
       rule.keywords.forEach(keyword => {
-        if (lowerContent.includes(keyword.toLowerCase())) {
-          violations.push(`${rule.name}: "${keyword}" detected`);
+        if (lowerContent.includes(keyword.lower)) {
+          violations.push(`${rule.name}: "${keyword.original}" detected`);
         }
       });
     });
