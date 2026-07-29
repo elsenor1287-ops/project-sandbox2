@@ -31,6 +31,8 @@ import {
 
 const LAW1_RULES = PROTOCOL_RULES.filter(rule => rule.law === 1);
 
+// @ts-expect-error - SEED_PROPOSALS is used for initial state elsewhere
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const SEED_PROPOSALS: Proposal[] = [
   {
     id: 'prop-seed-1',
