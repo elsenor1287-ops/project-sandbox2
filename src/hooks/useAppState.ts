@@ -31,8 +31,14 @@ import {
 
 const LAW1_RULES = PROTOCOL_RULES.filter(rule => rule.law === 1);
 
-// @ts-expect-error - SEED_PROPOSALS is used for initial state elsewhere
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const PRECOMPUTED_LAW1_RULES = LAW1_RULES.map(rule => ({
+  name: rule.name,
+  keywords: rule.keywords.map(keyword => ({
+    original: keyword,
+    lower: keyword.toLowerCase(),
+  })),
+}));
+
 const SEED_PROPOSALS: Proposal[] = [
   {
     id: 'prop-seed-1',
@@ -275,10 +281,10 @@ function useProposalActions(setState: Dispatch<SetStateAction<AppState>>) {
     const violations: string[] = [];
     const lowerContent = content.toLowerCase();
 
-    LAW1_RULES.forEach(rule => {
+    PRECOMPUTED_LAW1_RULES.forEach(rule => {
       rule.keywords.forEach(keyword => {
-        if (lowerContent.includes(keyword.toLowerCase())) {
-          violations.push(`${rule.name}: "${keyword}" detected`);
+        if (lowerContent.includes(keyword.lower)) {
+          violations.push(`${rule.name}: "${keyword.original}" detected`);
         }
       });
     });
@@ -508,6 +514,7 @@ export function calculateRCVResult(
 ): RCVResult {
   const rounds: RCVRound[] = [];
   let currentOptions = [...options];
+  const optionsMap = new Map(options.map(opt => [opt.id, opt]));
   let currentRankings = submissions.map(sub => [...sub.rankings].sort((a, b) => a.rank - b.rank));
 
   const totalVotes = submissions.length;
@@ -551,7 +558,7 @@ export function calculateRCVResult(
 
     // Check for winner
     if (maxVotes > threshold) {
-      winner = currentOptions.find(opt => opt.id === winnerId);
+      winner = winnerId ? optionsMap.get(winnerId) : undefined;
 
       rounds.push({
         roundNumber,

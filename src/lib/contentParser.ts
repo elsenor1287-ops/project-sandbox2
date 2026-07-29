@@ -39,14 +39,15 @@ export function parseContent(text: string): Segment[] {
   const lowerText = text.toLowerCase();
 
   LAW1_VIOLATION_KEYWORDS.forEach(kw => {
-    let index = lowerText.indexOf(kw.toLowerCase());
+    const lowerKw = kw.toLowerCase();
+    let index = lowerText.indexOf(lowerKw);
     while (index !== -1) {
       matches.push({
         start: index,
         end: index + kw.length,
         keyword: text.substring(index, index + kw.length),
       });
-      index = lowerText.indexOf(kw.toLowerCase(), index + 1);
+      index = lowerText.indexOf(lowerKw, index + 1);
     }
   });
 
