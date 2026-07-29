@@ -18,10 +18,9 @@ export function BallotStatus({
   const firstChoiceCounts = useMemo(() => {
     const counts = new Map<string, number>();
     for (const sub of ballotSubmissions) {
-      for (const r of sub.rankings) {
-        if (r.rank === 1) {
-          counts.set(r.optionId, (counts.get(r.optionId) || 0) + 1);
-        }
+      const firstChoice = sub.rankings.find(r => r.rank === 1);
+      if (firstChoice) {
+        counts.set(firstChoice.optionId, (counts.get(firstChoice.optionId) || 0) + 1);
       }
     }
     return counts;
