@@ -39,6 +39,7 @@ const PRECOMPUTED_LAW1_RULES = LAW1_RULES.map(rule => ({
   })),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const SEED_PROPOSALS: Proposal[] = [
   {
     id: 'prop-seed-1',
