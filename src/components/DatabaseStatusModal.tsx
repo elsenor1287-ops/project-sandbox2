@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Database, CheckCircle2, AlertTriangle, Copy, Check, Terminal, ExternalLink, X, RefreshCw } from 'lucide-react';
+import { Database, CheckCircle2, AlertTriangle, Copy, Check, Terminal, ExternalLink, X, RefreshCw, Activity } from 'lucide-react';
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
 
 const SUPABASE_SQL_SETUP = `\
@@ -150,8 +150,20 @@ export function DatabaseStatusModal({ isOpen, onClose }: DatabaseStatusModalProp
           </button>
         </div>
 
-function SetupScriptPanel() {
-  const [copied, setCopied] = useState(false);
+        <div className="flex-1 overflow-y-auto p-6 space-y-8 scrollbar-thin">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-primary-200 flex items-center gap-2">
+                <Activity className="w-4 h-4 text-accent-400" />
+                Connection Status
+              </h3>
+              <div className="flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full ${isSupabaseConfigured ? 'bg-success-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-warning-500 shadow-[0_0_8px_rgba(245,158,11,0.5)] animate-pulse'}`} />
+                <span className={`text-xs font-semibold ${isSupabaseConfigured ? 'text-success-400' : 'text-warning-400'}`}>
+                  {isSupabaseConfigured ? 'Connected to Network' : 'Local Fallback Mode'}
+                </span>
+              </div>
+            </div>
 
             {/* Test connection output */}
             {testResult ? (
