@@ -14,38 +14,48 @@ interface DashboardProps {
   onNavigate: (page: AppState['currentPage']) => void;
 }
 
+function getFilteredBallotOptions(ballotOptions: AppState['ballotOptions'], scope: 'city' | 'local') {
+  if (scope === 'city') {
+    return ballotOptions.filter(o => o.id === 'opt-1' || o.id === 'opt-2' || o.id === 'opt-5');
+  } else {
+    return ballotOptions.filter(o => o.id === 'opt-3' || o.id === 'opt-4' || o.id === 'opt-6' || o.isWriteIn);
+  }
+}
+
+function getCurrentCycle(state: AppState) {
+  const currentCycleName = state.calendarEvents.find(e => e.type === 'voting')?.title || 'No Active Cycle';
+  return {
+    name: currentCycleName,
+    startDate: new Date('2024-02-01'),
+    endDate: new Date('2024-02-28'),
+    ballotStatus: state.ballotSubmissions.length > 0 ? 'active' : 'pending',
+    proposals: state.proposals.length,
+    votes: state.ballotSubmissions.length,
+  };
+}
+
+function getDaysRemaining(endDate: Date) {
+  return Math.max(
+    0,
+    Math.ceil((endDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+  );
+}
+
+function getParticipationRate(submissionsCount: number, testAccountsCount: number) {
+  return submissionsCount > 0
+    ? ((submissionsCount / (testAccountsCount + 1)) * 100).toFixed(1)
+    : '0.0';
+}
+
 export function Dashboard({ state, onNavigate }: DashboardProps) {
   const { identity, ballotOptions, ballotSubmissions, proposals, calendarEvents, rcvResult } = state;
   const [scope, setScope] = useState<'city' | 'local'>('city');
 
-  const filteredBallotOptions = useMemo(() => {
-    if (scope === 'city') {
-      return ballotOptions.filter(o => o.id === 'opt-1' || o.id === 'opt-2' || o.id === 'opt-5');
-    } else {
-      return ballotOptions.filter(o => o.id === 'opt-3' || o.id === 'opt-4' || o.id === 'opt-6' || o.isWriteIn);
-    }
-  }, [ballotOptions, scope]);
+  const filteredBallotOptions = useMemo(() => getFilteredBallotOptions(ballotOptions, scope), [ballotOptions, scope]);
 
-  const currentCycleName = state.calendarEvents.find(e => e.type === 'voting')?.title || 'No Active Cycle';
-
-  const currentCycle = {
-    name: currentCycleName,
-    startDate: new Date('2024-02-01'),
-    endDate: new Date('2024-02-28'),
-    ballotStatus: ballotSubmissions.length > 0 ? 'active' : 'pending',
-    proposals: proposals.length,
-    votes: ballotSubmissions.length,
-  };
-
-  const daysRemaining = Math.max(
-    0,
-    Math.ceil((currentCycle.endDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-  );
-
-  const participationRate =
-    ballotSubmissions.length > 0
-      ? ((ballotSubmissions.length / (state.testAccounts.length + 1)) * 100).toFixed(1)
-      : '0.0';
+  const currentCycle = getCurrentCycle(state);
+  const daysRemaining = getDaysRemaining(currentCycle.endDate);
+  const participationRate = getParticipationRate(ballotSubmissions.length, state.testAccounts.length);
 
   return (
     <div className="p-8 space-y-8">
