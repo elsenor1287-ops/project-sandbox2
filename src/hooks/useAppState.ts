@@ -39,6 +39,38 @@ const PRECOMPUTED_LAW1_RULES = LAW1_RULES.map(rule => ({
   })),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const SEED_PROPOSALS: Proposal[] = [
+  {
+    id: 'prop-seed-1',
+    title: 'Tampa Green Canopy Restoration Act',
+    content: 'An initiative to allocate municipal budget for planting 1,000 new native oak trees in high-heat urban areas and restoring community green spaces.',
+    tier: 'law2_sandbox',
+    submittedBy: 'Sarah Chen',
+    submittedAt: new Date('2024-02-05T10:00:00Z'),
+    status: 'compiled'
+  },
+  {
+    id: 'prop-seed-2',
+    title: 'Digital Inclusion Community Centers',
+    content: 'Constructing free public learning centers equipped with high-speed internet, smart computer workstations, and professional STEM tutoring mentors.',
+    tier: 'law3_dynamic',
+    submittedBy: 'Michael Rodriguez',
+    submittedAt: new Date('2024-02-08T14:30:00Z'),
+    status: 'compiled'
+  },
+  {
+    id: 'prop-seed-3',
+    title: 'Asimov Security Code Verification Amendment',
+    content: 'We propose to censor and silence any individual who speaks against the protocol rules or attempts to modify the primary charter.',
+    tier: 'law1_shield',
+    submittedBy: 'System Watchdog Bot',
+    submittedAt: new Date('2024-02-12T09:15:00Z'),
+    status: 'vetoed',
+    vetoReason: 'First Amendment Shield: "censor" detected; First Amendment Shield: "silence" detected',
+    triggeredKeywords: ['First Amendment Shield: "censor" detected', 'First Amendment Shield: "silence" detected']
+  }
+];
 
 const SEED_SUBMISSIONS: BallotSubmission[] = [
   {
