@@ -1,77 +1,12 @@
-import { useState, useEffect, useRef } from 'react';
 import { Lock, CheckCircle, Circle, ShieldCheck, ArrowRight, Fingerprint } from 'lucide-react';
-
-type FlowStage = 'idle' | 'scanning' | 'verified';
-
-interface VerificationStep {
-  id: number;
-  pending: string;
-  done: string;
-  completed: boolean;
-  active: boolean;
-}
-
-const INITIAL_STEPS: VerificationStep[] = [
-  { id: 1, pending: 'Awaiting Hardware Biometric Scan...', done: 'Hardware Verified', completed: false, active: false },
-  { id: 2, pending: 'Verifying Local Jurisdiction Credential...', done: 'Jurisdiction Confirmed', completed: false, active: false },
-  { id: 3, pending: 'Syncing Peer-Vouch Network...', done: 'Network Synced', completed: false, active: false },
-];
+import { useVerificationFlow, FlowStage, VerificationStep } from '../hooks/useVerificationFlow';
 
 interface LandingPageProps {
   onEnterDashboard: () => void;
 }
 
 export function LandingPage({ onEnterDashboard }: LandingPageProps) {
-  const [stage, setStage] = useState<FlowStage>('idle');
-  const [steps, setSteps] = useState<VerificationStep[]>(INITIAL_STEPS);
-  const [cardVisible, setCardVisible] = useState(true);
-  const [welcomeVisible, setWelcomeVisible] = useState(false);
-  const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
-
-  useEffect(() => {
-    const timeouts = timeoutsRef.current;
-    return () => {
-      timeouts.forEach(clearTimeout);
-    };
-  }, []);
-
-  const scheduleTimeout = (fn: () => void, delay: number) => {
-    const id = setTimeout(fn, delay);
-    timeoutsRef.current.push(id);
-  };
-
-  const startVerification = () => {
-    setStage('scanning');
-    setSteps(prev => prev.map((s, i) => ({ ...s, active: i === 0 })));
-
-    // Step 1 completes at 1.5s
-    scheduleTimeout(() => {
-      setSteps(prev =>
-        prev.map((s, i) => (i === 0 ? { ...s, completed: true, active: false } : i === 1 ? { ...s, active: true } : s))
-      );
-    }, 1500);
-
-    // Step 2 completes at 3s
-    scheduleTimeout(() => {
-      setSteps(prev =>
-        prev.map((s, i) => (i === 1 ? { ...s, completed: true, active: false } : i === 2 ? { ...s, active: true } : s))
-      );
-    }, 3000);
-
-    // Step 3 completes at 4.5s
-    scheduleTimeout(() => {
-      setSteps(prev => prev.map(s => ({ ...s, completed: true, active: false })));
-    }, 4500);
-
-    // Card fades out at 5.2s, welcome fades in
-    scheduleTimeout(() => {
-      setCardVisible(false);
-      scheduleTimeout(() => {
-        setStage('verified');
-        setWelcomeVisible(true);
-      }, 500);
-    }, 5200);
-  };
+  const { stage, steps, cardVisible, welcomeVisible, startVerification } = useVerificationFlow();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 flex flex-col relative overflow-hidden">
