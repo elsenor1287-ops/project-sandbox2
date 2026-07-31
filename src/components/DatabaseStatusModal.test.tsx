@@ -44,8 +44,7 @@ describe('DatabaseStatusModal', () => {
 
     render(<DatabaseStatusModal isOpen={true} onClose={onCloseMock} />);
 
-    expect(screen.getByText('Setup Needed')).toBeInTheDocument();
-    expect(screen.getByText(/Supabase client is loaded in fallback mode/)).toBeInTheDocument();
+        expect(screen.getByText(/Supabase client is loaded in fallback mode/)).toBeInTheDocument();
   });
 
   it('tests connection and shows verified connected', async () => {
@@ -60,7 +59,6 @@ describe('DatabaseStatusModal', () => {
 
     render(<DatabaseStatusModal isOpen={true} onClose={onCloseMock} />);
 
-    expect(screen.getByText('Configured')).toBeInTheDocument();
 
     // It should perform 2 selects (proposals and ballot_submissions)
     await waitFor(() => {

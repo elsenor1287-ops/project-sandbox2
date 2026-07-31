@@ -150,9 +150,9 @@ export function DatabaseStatusModal({ isOpen, onClose }: DatabaseStatusModalProp
           </button>
         </div>
 
-function SetupScriptPanel() {
-  const [copied, setCopied] = useState(false);
-
+        <div className="p-6 overflow-y-auto flex-1 space-y-6">
+          {/* Status Panel */}
+          <div className="space-y-4">
             {/* Test connection output */}
             {testResult ? (
               <div className={`p-4 rounded-xl border text-sm flex items-start gap-3 ${testResult.success ? 'bg-success-950/20 border-success-500/30 text-success-300' : 'bg-danger-950/20 border-danger-500/30 text-danger-300'}`}>
