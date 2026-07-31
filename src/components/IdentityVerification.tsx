@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import React from 'react';
 import type { IdentityState, VerificationStep, VouchToken } from '../types';
+import { Badge } from './Badge';
 
 interface IdentityPageProps {
   identity: IdentityState;
@@ -103,13 +104,13 @@ function StatusCard({ identity }: StatusCardProps) {
   const getStatusBadge = () => {
     switch (identity.status) {
       case 'active':
-        return <span className="badge-success">Active</span>;
+        return <Badge variant="success">Active</Badge>;
       case 'frozen':
-        return <span className="badge-danger">Frozen</span>;
+        return <Badge variant="danger">Frozen</Badge>;
       case 'deactivated':
-        return <span className="badge-danger bg-danger-500/30 text-danger-300">Deactivated</span>;
+        return <Badge variant="danger" className="bg-danger-500/30 text-danger-300">Deactivated</Badge>;
       default:
-        return <span className="badge-warning">Pending</span>;
+        return <Badge variant="warning">Pending</Badge>;
     }
   };
 

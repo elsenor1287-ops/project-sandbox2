@@ -39,6 +39,7 @@ const PRECOMPUTED_LAW1_RULES = LAW1_RULES.map(rule => ({
   })),
 }));
 
+// @ts-expect-error - SEED_PROPOSALS is not actively used in all environments but is kept for future bootstrapping
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const SEED_PROPOSALS: Proposal[] = [
   {

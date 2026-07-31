@@ -44,7 +44,7 @@ describe('DatabaseStatusModal', () => {
 
     render(<DatabaseStatusModal isOpen={true} onClose={onCloseMock} />);
 
-    expect(screen.getByText('Local Fallback Mode')).toBeInTheDocument();
+    expect(screen.getByText('Setup Needed')).toBeInTheDocument();
     expect(screen.getByText(/Supabase client is loaded in fallback mode/)).toBeInTheDocument();
   });
 
@@ -60,7 +60,7 @@ describe('DatabaseStatusModal', () => {
 
     render(<DatabaseStatusModal isOpen={true} onClose={onCloseMock} />);
 
-    expect(screen.getByText('Connected to Network')).toBeInTheDocument();
+    expect(screen.getByText('Configured')).toBeInTheDocument();
 
     // It should perform 2 selects (proposals and ballot_submissions)
     await waitFor(() => {
