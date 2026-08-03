@@ -451,120 +451,64 @@ function useVotingActions(setState: Dispatch<SetStateAction<AppState>>) {
 }
 
 export function useAppState() {
-  const [state, setState] = useState<AppState>(initialState);
+  const [currentPage, setCurrentPage] = useState<PageRoute>('/dashboard');
 
-  useDataSync(setState);
+  const {
+    identity,
+    completeVerificationStep,
+    addVouchToken,
+    triggerFraudStrike,
+    freezeAccount,
+    resetIdentity
+  } = useIdentity();
 
-  const setCurrentPage = useCallback((page: PageRoute) => {
-    setState(prev => ({ ...prev, currentPage: page }));
+  const {
+    proposals,
+    checkLaw1Violations,
+    submitProposal
+  } = useProposals();
+
+  const {
+    ballotOptions,
+    ballotSubmissions,
+    testAccounts,
+    rcvResult,
+    submitBallot,
+    runRCVSimulation,
+    generateMockVotes,
+    resetVoting
+  } = useBallotState();
+
+  const state: AppState = {
+    currentPage,
+    identity,
+    proposals,
+    ballotOptions,
+    ballotSubmissions,
+    testAccounts,
+    rcvResult,
+    calendarEvents: MOCK_CALENDAR_EVENTS,
+  };
+
+  const handleSetCurrentPage = useCallback((page: PageRoute) => {
+    setCurrentPage(page);
   }, []);
-
-  const identityActions = useIdentityActions(setState);
-
-  const proposalActions = useProposalActions(setState);
-
-
-  const votingActions = useVotingActions(setState);
 
   return {
     state,
-    setCurrentPage,
-    ...identityActions,
-    ...proposalActions,
-    ...votingActions,
+    setCurrentPage: handleSetCurrentPage,
+    completeVerificationStep,
+    addVouchToken,
+    triggerFraudStrike,
+    freezeAccount,
+    resetIdentity,
+    checkLaw1Violations,
+    submitProposal,
+    submitBallot,
+    runRCVSimulation,
+    generateMockVotes,
+    resetVoting,
   };
 }
 
-export function calculateRCVResult(
-  options: BallotOption[],
-  submissions: BallotSubmission[]
-): RCVResult {
-  const rounds: RCVRound[] = [];
-  let currentOptions = [...options];
-  const optionsMap = new Map(options.map(opt => [opt.id, opt]));
-  let currentRankings = submissions.map(sub => [...sub.rankings].sort((a, b) => a.rank - b.rank));
-
-  const totalVotes = submissions.length;
-  const threshold = totalVotes / 2;
-
-  let roundNumber = 0;
-  let winner: BallotOption | undefined;
-
-  while (!winner && currentOptions.length > 1 && roundNumber < 10) {
-    roundNumber++;
-
-    // Count first-choice votes
-    const voteDistribution: Record<string, number> = {};
-    currentOptions.forEach(opt => {
-      voteDistribution[opt.id] = 0;
-    });
-
-    currentRankings.forEach(rankings => {
-      const firstChoice = rankings[0];
-      if (firstChoice && Object.prototype.hasOwnProperty.call(voteDistribution, firstChoice.optionId)) {
-        voteDistribution[firstChoice.optionId]++;
-      }
-    });
-
-    let maxVotes = -Infinity;
-    let minVotes = Infinity;
-    let winnerId: string | undefined;
-    let loserId: string | undefined;
-
-    for (const id in voteDistribution) {
-      const votes = voteDistribution[id];
-      if (votes > maxVotes) {
-        maxVotes = votes;
-        winnerId = id;
-      }
-      if (votes < minVotes) {
-        minVotes = votes;
-        loserId = id;
-      }
-    }
-
-    // Check for winner
-    if (maxVotes > threshold) {
-      winner = winnerId ? optionsMap.get(winnerId) : undefined;
-
-      rounds.push({
-        roundNumber,
-        voteDistribution,
-        threshold,
-        winner: winnerId,
-        totalVotes,
-      });
-      break;
-    }
-
-    // Eliminate loser
-    currentOptions = currentOptions.filter(opt => opt.id !== loserId);
-
-    // Optimization: Create a Set of current option IDs for O(1) lookup
-    const currentOptionIds = new Set(currentOptions.map(opt => opt.id));
-
-    // Redistribute votes
-    currentRankings = currentRankings.map(rankings =>
-      rankings.filter(r => currentOptionIds.has(r.optionId))
-    );
-
-    rounds.push({
-      roundNumber,
-      eliminatedOptionId: loserId,
-      voteDistribution,
-      threshold,
-      totalVotes,
-    });
-  }
-
-  if (!winner) {
-    winner = currentOptions[0];
-  }
-
-  return {
-    rounds,
-    winner: winner!,
-    totalVotes,
-    completedAt: new Date(),
-  };
-}
+export { calculateRCVResult };

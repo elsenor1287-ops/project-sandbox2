@@ -267,6 +267,8 @@ export function DatabaseStatusModal({ isOpen, onClose }: DatabaseStatusModalProp
   useEffect(() => {
     if (isOpen && isSupabaseConfigured) {
       testConnection();
+    } else if (!isOpen) {
+      setTestResult(null);
     }
   }, [isOpen]);
 

@@ -38,7 +38,7 @@ describe('DatabaseStatusModal', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('renders Setup Needed when not configured', () => {
+  it('renders Setup Needed when not configured', async () => {
     // Override read-only property for testing
     Object.defineProperty(supabaseLib, 'isSupabaseConfigured', { value: false });
 
