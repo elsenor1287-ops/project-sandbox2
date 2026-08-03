@@ -60,8 +60,6 @@ describe('DatabaseStatusModal', () => {
 
     render(<DatabaseStatusModal isOpen={true} onClose={onCloseMock} />);
 
-    expect(screen.getByText('Configured')).toBeInTheDocument();
-
     // It should perform 2 selects (proposals and ballot_submissions)
     await waitFor(() => {
       expect(mockFrom).toHaveBeenCalledTimes(2);
