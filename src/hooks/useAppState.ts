@@ -1,9 +1,454 @@
-import { useState, useCallback } from 'react';
-import type { AppState, PageRoute } from '../types';
-import { MOCK_CALENDAR_EVENTS } from '../data/mockData';
-import { useIdentity } from './useIdentity';
-import { useProposals } from './useProposals';
-import { useBallotState, calculateRCVResult } from './useBallotState';
+import type { Dispatch, SetStateAction } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+import { 
+  dbFetchProposals, 
+  dbInsertProposal,
+  dbInsertProposals,
+  dbFetchBallotSubmissions, 
+  dbInsertBallotSubmission, 
+  dbInsertBallotSubmissions,
+  dbResetVotingSubmissions,
+  isSupabaseConfigured
+} from '../lib/supabase';
+import type {
+  AppState,
+  PageRoute,
+  VerificationStep,
+  VouchToken,
+  Proposal,
+  BallotOption,
+  BallotSubmission,
+  RCVResult,
+  RCVRound,
+} from '../types';
+import {
+  INITIAL_IDENTITY,
+  INITIAL_BALLOT_OPTIONS,
+  MOCK_TEST_ACCOUNTS,
+  MOCK_VOUCH_TOKENS,
+  MOCK_CALENDAR_EVENTS,
+  PROTOCOL_RULES,
+} from '../data/mockData';
+
+const LAW1_RULES = PROTOCOL_RULES.filter(rule => rule.law === 1);
+
+const PRECOMPUTED_LAW1_RULES = LAW1_RULES.map(rule => ({
+  name: rule.name,
+  keywords: rule.keywords.map(keyword => ({
+    original: keyword,
+    lower: keyword.toLowerCase(),
+  })),
+}));
+
+const SEED_PROPOSALS: Proposal[] = [
+  {
+    id: 'prop-seed-1',
+    title: 'Tampa Green Canopy Restoration Act',
+    content: 'An initiative to allocate municipal budget for planting 1,000 new native oak trees in high-heat urban areas and restoring community green spaces.',
+    tier: 'law2_sandbox',
+    submittedBy: 'Sarah Chen',
+    submittedAt: new Date('2024-02-05T10:00:00Z'),
+    status: 'compiled'
+  },
+  {
+    id: 'prop-seed-2',
+    title: 'Digital Inclusion Community Centers',
+    content: 'Constructing free public learning centers equipped with high-speed internet, smart computer workstations, and professional STEM tutoring mentors.',
+    tier: 'law3_dynamic',
+    submittedBy: 'Michael Rodriguez',
+    submittedAt: new Date('2024-02-08T14:30:00Z'),
+    status: 'compiled'
+  },
+  {
+    id: 'prop-seed-3',
+    title: 'Asimov Security Code Verification Amendment',
+    content: 'We propose to censor and silence any individual who speaks against the protocol rules or attempts to modify the primary charter.',
+    tier: 'law1_shield',
+    submittedBy: 'System Watchdog Bot',
+    submittedAt: new Date('2024-02-12T09:15:00Z'),
+    status: 'vetoed',
+    vetoReason: 'First Amendment Shield: "censor" detected; First Amendment Shield: "silence" detected',
+    triggeredKeywords: ['First Amendment Shield: "censor" detected', 'First Amendment Shield: "silence" detected']
+  }
+];
+
+const SEED_SUBMISSIONS: BallotSubmission[] = [
+  {
+    voterId: 'test-1',
+    rankings: [
+      { optionId: 'opt-1', rank: 1 },
+      { optionId: 'opt-2', rank: 2 },
+      { optionId: 'opt-3', rank: 3 }
+    ],
+    submittedAt: new Date('2024-02-14T08:00:00Z')
+  },
+  {
+    voterId: 'test-2',
+    rankings: [
+      { optionId: 'opt-2', rank: 1 },
+      { optionId: 'opt-1', rank: 2 },
+      { optionId: 'opt-5', rank: 3 }
+    ],
+    submittedAt: new Date('2024-02-14T09:12:00Z')
+  },
+  {
+    voterId: 'test-3',
+    rankings: [
+      { optionId: 'opt-3', rank: 1 },
+      { optionId: 'opt-6', rank: 2 },
+      { optionId: 'opt-2', rank: 3 }
+    ],
+    submittedAt: new Date('2024-02-14T11:45:00Z')
+  }
+];
+
+const initialState: AppState = {
+  currentPage: '/dashboard',
+  identity: INITIAL_IDENTITY,
+  proposals: [],
+  ballotOptions: INITIAL_BALLOT_OPTIONS,
+  ballotSubmissions: [],
+  testAccounts: MOCK_TEST_ACCOUNTS,
+  rcvResult: null,
+  calendarEvents: MOCK_CALENDAR_EVENTS,
+};
+
+function useDataSync(setState: Dispatch<SetStateAction<AppState>>) {
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+
+    const loadData = async () => {
+      try {
+        let fetchedProposals = await dbFetchProposals();
+        if (fetchedProposals !== null) {
+          if (fetchedProposals.length === 0) {
+            // Seed default proposals so user gets instant rows
+            await dbInsertProposals(SEED_PROPOSALS);
+            fetchedProposals = SEED_PROPOSALS;
+          }
+          setState(prev => ({ ...prev, proposals: fetchedProposals! }));
+        }
+
+        let fetchedSubmissions = await dbFetchBallotSubmissions();
+        if (fetchedSubmissions !== null) {
+          if (fetchedSubmissions.length === 0) {
+            await dbInsertBallotSubmissions(SEED_SUBMISSIONS);
+            fetchedSubmissions = SEED_SUBMISSIONS;
+          }
+
+          const votedUserIds = new Set(fetchedSubmissions.map(s => s.voterId));
+          setState(prev => {
+            const updatedAccounts = prev.testAccounts.map(acc => {
+              if (votedUserIds.has(acc.id)) {
+                return { ...acc, hasVoted: true };
+              }
+              return acc;
+            });
+            return {
+              ...prev,
+              ballotSubmissions: fetchedSubmissions!,
+              testAccounts: updatedAccounts
+            };
+          });
+        }
+      } catch (err) {
+        console.error('Error loading data from Supabase:', err);
+      }
+    };
+
+    loadData();
+  }, [setState]);
+}
+
+function useIdentityActions(setState: Dispatch<SetStateAction<AppState>>) {
+  const completeVerificationStep = useCallback((step: VerificationStep) => {
+    setState(prev => {
+      const newIdentity = { ...prev.identity };
+
+      switch (step) {
+        case 'passport':
+          newIdentity.passportVerified = true;
+          newIdentity.verificationStep = 'utility';
+          break;
+        case 'utility':
+          newIdentity.utilityVerified = true;
+          newIdentity.verificationStep = 'vouching';
+          break;
+        case 'vouching':
+          newIdentity.vouchTokens = MOCK_VOUCH_TOKENS;
+          newIdentity.verificationStep = 'complete';
+          newIdentity.status = 'active';
+          break;
+      }
+
+      return { ...prev, identity: newIdentity };
+    });
+  }, [setState]);
+
+  const addVouchToken = useCallback((token: VouchToken) => {
+    setState(prev => {
+      const newTokens = [...prev.identity.vouchTokens, token];
+      const isComplete = newTokens.length >= 3;
+      return {
+        ...prev,
+        identity: {
+          ...prev.identity,
+          vouchTokens: newTokens,
+          verificationStep: isComplete ? 'complete' : 'vouching',
+          status: isComplete ? 'active' : 'pending',
+        },
+      };
+    });
+  }, [setState]);
+
+  const triggerFraudStrike = useCallback((reason: string) => {
+    setState(prev => {
+      const newStrikes = prev.identity.fraudStrikes + 1;
+      const shouldFreeze = newStrikes >= 2;
+      const shouldDeactivate = newStrikes >= 3;
+
+      return {
+        ...prev,
+        identity: {
+          ...prev.identity,
+          fraudStrikes: newStrikes,
+          status: shouldDeactivate ? 'deactivated' : shouldFreeze ? 'frozen' : prev.identity.status,
+          frozenAt: shouldFreeze ? new Date() : undefined,
+          frozenReason: shouldFreeze ? reason : undefined,
+        },
+      };
+    });
+  }, [setState]);
+
+  const freezeAccount = useCallback((reason: string) => {
+    setState(prev => ({
+      ...prev,
+      identity: {
+        ...prev.identity,
+        status: 'frozen',
+        frozenAt: new Date(),
+        frozenReason: reason,
+        fraudStrikes: 3,
+      },
+    }));
+  }, [setState]);
+
+  const resetIdentity = useCallback(() => {
+    setState(prev => ({
+      ...prev,
+      identity: INITIAL_IDENTITY,
+    }));
+  }, [setState]);
+
+  return { completeVerificationStep, addVouchToken, triggerFraudStrike, freezeAccount, resetIdentity };
+}
+
+function useProposalActions(setState: Dispatch<SetStateAction<AppState>>) {
+  const checkLaw1Violations = useCallback((content: string): string[] => {
+    const violations: string[] = [];
+    const lowerContent = content.toLowerCase();
+
+    PRECOMPUTED_LAW1_RULES.forEach(rule => {
+      rule.keywords.forEach(keyword => {
+        if (lowerContent.includes(keyword.lower)) {
+          violations.push(`${rule.name}: "${keyword.original}" detected`);
+        }
+      });
+    });
+
+    return violations;
+  }, []);
+
+  const submitProposal = useCallback((proposal: Omit<Proposal, 'id' | 'submittedAt' | 'status'>) => {
+    const violations = checkLaw1Violations(proposal.content);
+    const status = violations.length > 0 ? 'vetoed' : 'compiled';
+
+    const newProposal: Proposal = {
+      id: `prop-${Date.now()}`,
+      ...proposal,
+      submittedAt: new Date(),
+      status,
+      vetoReason: violations.length > 0 ? violations.join('; ') : undefined,
+      triggeredKeywords: violations.length > 0 ? violations : undefined,
+    };
+
+    // Sync to Supabase if configured
+    if (isSupabaseConfigured) {
+      dbInsertProposal(newProposal).catch(err => {
+        console.error('Failed to sync proposal to Supabase:', err);
+      });
+    }
+
+    setState(prev => ({
+      ...prev,
+      proposals: [...prev.proposals, newProposal],
+    }));
+
+    return newProposal;
+  }, [checkLaw1Violations, setState]);
+
+  return { checkLaw1Violations, submitProposal };
+}
+
+function useVotingActions(setState: Dispatch<SetStateAction<AppState>>) {
+  const submitBallot = useCallback((submission: Omit<BallotSubmission, 'submittedAt'>) => {
+    const newSubmission: BallotSubmission = {
+      ...submission,
+      submittedAt: new Date(),
+    };
+
+    if (isSupabaseConfigured) {
+      dbInsertBallotSubmission(newSubmission).catch(err => {
+        console.error('Failed to sync submission to Supabase:', err);
+      });
+    }
+
+    setState(prev => {
+      const newBallotOptions = [...prev.ballotOptions];
+
+      // Handle write-in
+      if (submission.writeIn) {
+        const existingWriteIn = newBallotOptions.find(
+          opt => opt.isWriteIn && opt.title.toLowerCase() === submission.writeIn!.toLowerCase()
+        );
+
+        if (existingWriteIn) {
+          existingWriteIn.writeInCount = (existingWriteIn.writeInCount || 0) + 1;
+        } else {
+          // Create new write-in option
+          const newWriteInOption: BallotOption = {
+            id: `writein-${Date.now()}`,
+            title: submission.writeIn,
+            description: 'Write-in candidate submitted by voters',
+            budget: 0,
+            category: 'other',
+            voteCount: 0,
+            isWriteIn: true,
+            writeInCount: 1,
+          };
+          newBallotOptions.push(newWriteInOption);
+        }
+      }
+
+      return {
+        ...prev,
+        ballotSubmissions: [...prev.ballotSubmissions, newSubmission],
+        ballotOptions: newBallotOptions,
+      };
+    });
+  }, [setState]);
+
+  const runRCVSimulation = useCallback(() => {
+    setState(prev => {
+      const result = calculateRCVResult(prev.ballotOptions, prev.ballotSubmissions);
+      return { ...prev, rcvResult: result };
+    });
+  }, [setState]);
+
+  const generateMockVotes = useCallback((count: number) => {
+    setState(prev => {
+      const accounts = [...prev.testAccounts];
+      const newSubmissions: BallotSubmission[] = [];
+
+      for (let i = 0; i < Math.min(count, accounts.length); i++) {
+        const account = accounts[i];
+        if (!account.hasVoted) {
+          // Generate random rankings
+          const shuffled = [...prev.ballotOptions].sort(() => Math.random() - 0.5);
+          const rankings = shuffled.slice(0, Math.floor(Math.random() * 4) + 1).map((opt, idx) => ({
+            optionId: opt.id,
+            rank: idx + 1,
+          }));
+
+          // Randomly add a write-in (10% chance)
+          const writeIn = Math.random() < 0.1 ? `Citizen Initiative #${Math.floor(Math.random() * 100)}` : undefined;
+
+          account.hasVoted = true;
+          if (writeIn) account.writeIns.push(writeIn);
+
+          const sub: BallotSubmission = {
+            voterId: account.id,
+            rankings,
+            writeIn,
+            submittedAt: new Date(),
+          };
+          newSubmissions.push(sub);
+        }
+      }
+
+      // Sync to Supabase asynchronously
+      if (isSupabaseConfigured && newSubmissions.length > 0) {
+        dbInsertBallotSubmissions(newSubmissions).catch(err => {
+          console.error('Failed to sync generated mock submissions to Supabase:', err);
+        });
+      }
+
+      // Update ballot options with write-ins
+      const newBallotOptions = [...prev.ballotOptions];
+      const writeInCounts: Record<string, number> = {};
+
+      newSubmissions.forEach(sub => {
+        if (sub.writeIn) {
+          writeInCounts[sub.writeIn] = (writeInCounts[sub.writeIn] || 0) + 1;
+        }
+      });
+
+      const existingWriteIns = new Map<string, BallotOption>();
+      for (const opt of newBallotOptions) {
+        if (opt.isWriteIn) {
+          existingWriteIns.set(opt.title.toLowerCase(), opt);
+        }
+      }
+
+      Object.entries(writeInCounts).forEach(([writeIn, count]) => {
+        const normalized = writeIn.toLowerCase();
+        const existing = existingWriteIns.get(normalized);
+
+        if (existing) {
+          existing.writeInCount = (existing.writeInCount || 0) + count;
+        } else {
+          const newWriteInOption: BallotOption = {
+            id: `writein-${Date.now()}-${crypto.randomUUID()}`,
+            title: writeIn,
+            description: 'Write-in candidate submitted by voters',
+            budget: 0,
+            category: 'other',
+            voteCount: 0,
+            isWriteIn: true,
+            writeInCount: count,
+          };
+          newBallotOptions.push(newWriteInOption);
+          existingWriteIns.set(normalized, newWriteInOption);
+        }
+      });
+
+      return {
+        ...prev,
+        testAccounts: accounts,
+        ballotSubmissions: [...prev.ballotSubmissions, ...newSubmissions],
+        ballotOptions: newBallotOptions,
+      };
+    });
+  }, [setState]);
+
+  const resetVoting = useCallback(() => {
+    if (isSupabaseConfigured) {
+      dbResetVotingSubmissions().catch(err => {
+        console.error('Failed to reset submissions on Supabase:', err);
+      });
+    }
+
+    setState(prev => ({
+      ...prev,
+      ballotOptions: INITIAL_BALLOT_OPTIONS,
+      ballotSubmissions: [],
+      rcvResult: null,
+      testAccounts: MOCK_TEST_ACCOUNTS.map(acc => ({ ...acc, hasVoted: false, writeIns: [] })),
+    }));
+  }, [setState]);
+
+  return { submitBallot, runRCVSimulation, generateMockVotes, resetVoting };
+}
 
 export function useAppState() {
   const [currentPage, setCurrentPage] = useState<PageRoute>('/dashboard');

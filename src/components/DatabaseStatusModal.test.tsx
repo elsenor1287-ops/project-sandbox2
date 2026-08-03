@@ -44,9 +44,7 @@ describe('DatabaseStatusModal', () => {
 
     render(<DatabaseStatusModal isOpen={true} onClose={onCloseMock} />);
 
-    await waitFor(() => {
-      expect(screen.getByText('Setup Needed')).toBeInTheDocument();
-    });
+    expect(screen.getByText('Setup Needed')).toBeInTheDocument();
     expect(screen.getByText(/Supabase client is loaded in fallback mode/)).toBeInTheDocument();
   });
 
