@@ -246,9 +246,16 @@ function useIdentityActions(setState: Dispatch<SetStateAction<AppState>>) {
 function useProposalActions(setState: Dispatch<SetStateAction<AppState>>) {
   const checkLaw1Violations = useCallback((content: string): string[] => {
     const violations: string[] = [];
+    if (!ALL_KEYWORDS_REGEX || !ALL_KEYWORDS_REGEX.test(content)) {
+      return violations;
+    }
+
     const lowerContent = content.toLowerCase();
 
     PRECOMPUTED_LAW1_RULES.forEach(rule => {
+      if (rule.regex && !rule.regex.test(content)) {
+        return;
+      }
       rule.keywords.forEach(keyword => {
         if (lowerContent.includes(keyword.lower)) {
           violations.push(`${rule.name}: "${keyword.original}" detected`);
