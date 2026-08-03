@@ -31,16 +31,30 @@ import {
 
 const LAW1_RULES = PROTOCOL_RULES.filter(rule => rule.law === 1);
 
-const PRECOMPUTED_LAW1_RULES = LAW1_RULES.map(rule => ({
-  name: rule.name,
-  keywords: rule.keywords.map(keyword => ({
-    original: keyword,
-    lower: keyword.toLowerCase(),
-  })),
-}));
+const escapeRegExp = (string: string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const SEED_PROPOSALS: Proposal[] = [
+const allLaw1Keywords = LAW1_RULES.flatMap(rule => rule.keywords);
+const ALL_KEYWORDS_REGEX = allLaw1Keywords.length > 0
+  ? new RegExp(allLaw1Keywords.map(k => escapeRegExp(k.toLowerCase())).join('|'), 'i')
+  : null;
+
+const PRECOMPUTED_LAW1_RULES = LAW1_RULES.map(rule => {
+  const keywords = rule.keywords;
+  const regex = keywords.length > 0
+    ? new RegExp(`(${keywords.map(k => escapeRegExp(k.toLowerCase())).join('|')})`, 'i')
+    : null;
+
+  return {
+    name: rule.name,
+    keywords: keywords.map(keyword => ({
+      original: keyword,
+      lower: keyword.toLowerCase(),
+    })),
+    regex
+  };
+});
+
+export const SEED_PROPOSALS: Proposal[] = [
   {
     id: 'prop-seed-1',
     title: 'Tampa Green Canopy Restoration Act',
@@ -280,9 +294,16 @@ function useIdentityActions(setState: Dispatch<SetStateAction<AppState>>) {
 function useProposalActions(setState: Dispatch<SetStateAction<AppState>>) {
   const checkLaw1Violations = useCallback((content: string): string[] => {
     const violations: string[] = [];
+    if (!ALL_KEYWORDS_REGEX || !ALL_KEYWORDS_REGEX.test(content)) {
+      return violations;
+    }
+
     const lowerContent = content.toLowerCase();
 
     PRECOMPUTED_LAW1_RULES.forEach(rule => {
+      if (rule.regex && !rule.regex.test(content)) {
+        return;
+      }
       rule.keywords.forEach(keyword => {
         if (lowerContent.includes(keyword.lower)) {
           violations.push(`${rule.name}: "${keyword.original}" detected`);

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Database, CheckCircle2, AlertTriangle, Copy, Check, Terminal, ExternalLink, X, RefreshCw, Activity } from 'lucide-react';
+import { Database, CheckCircle2, AlertTriangle, Copy, Check, Terminal, ExternalLink, X, RefreshCw } from 'lucide-react';
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
 
 const SUPABASE_SQL_SETUP = `\
