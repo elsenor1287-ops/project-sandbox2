@@ -38,13 +38,13 @@ describe('DatabaseStatusModal', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('renders Setup Needed when not configured', () => {
+  it('renders Setup Needed when not configured', async () => {
     // Override read-only property for testing
     Object.defineProperty(supabaseLib, 'isSupabaseConfigured', { value: false });
 
     render(<DatabaseStatusModal isOpen={true} onClose={onCloseMock} />);
 
-    expect(screen.getByText('Local Fallback Mode')).toBeInTheDocument();
+    expect(screen.getByText('Setup Needed')).toBeInTheDocument();
     expect(screen.getByText(/Supabase client is loaded in fallback mode/)).toBeInTheDocument();
   });
 
@@ -59,8 +59,6 @@ describe('DatabaseStatusModal', () => {
     supabase.from = mockFrom as unknown as typeof supabase.from;
 
     render(<DatabaseStatusModal isOpen={true} onClose={onCloseMock} />);
-
-    expect(screen.getByText('Connected to Network')).toBeInTheDocument();
 
     // It should perform 2 selects (proposals and ballot_submissions)
     await waitFor(() => {

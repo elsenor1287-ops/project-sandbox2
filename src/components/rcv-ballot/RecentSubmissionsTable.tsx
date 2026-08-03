@@ -1,0 +1,62 @@
+import type { BallotOption, BallotSubmission, TestAccount } from '../../types';
+
+export function RecentSubmissionsTable({
+  submissions,
+  testAccountsMap,
+  accountsMap,
+  ballotOptionsMap,
+  optionsMap,
+}: {
+  submissions: BallotSubmission[];
+  testAccountsMap: Map<string, TestAccount>;
+  accountsMap: Map<string, TestAccount>;
+  ballotOptionsMap: Map<string, BallotOption>;
+  optionsMap: Map<string, BallotOption>;
+}) {
+  if (submissions.length === 0) return null;
+
+  return (
+    <div className="card p-6">
+      <h2 className="text-lg font-semibold text-primary-200 mb-4 flex items-center justify-between">
+        <span>Recent Ballot Submissions</span>
+        <span className="text-sm text-primary-400">{submissions.length} total</span>
+      </h2>
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="text-left text-primary-400 border-b border-primary-700">
+              <th className="pb-3 font-medium">Voter</th>
+              <th className="pb-3 font-medium">Rankings</th>
+              <th className="pb-3 font-medium">Write-In</th>
+              <th className="pb-3 font-medium">Time</th>
+            </tr>
+          </thead>
+          <tbody className="text-sm">
+            {submissions.slice(-10).reverse().map((sub, idx) => {
+              const voter = testAccountsMap.get(sub.voterId) ?? accountsMap.get(sub.voterId);
+              return (
+                <tr key={idx} className="border-b border-primary-700/50">
+                  <td className="py-3 text-primary-200">
+                    {voter?.name || 'You'}
+                  </td>
+                  <td className="py-3 text-primary-300">
+                    {sub.rankings.sort((a, b) => a.rank - b.rank).map(r => {
+                      const opt = ballotOptionsMap.get(r.optionId) ?? optionsMap.get(r.optionId);
+                      return `${r.rank}: ${opt?.title || 'Unknown'}`;
+                    }).join(' → ')}
+                  </td>
+                  <td className="py-3 text-primary-400">
+                    {sub.writeIn || '-'}
+                  </td>
+                  <td className="py-3 text-primary-500">
+                    {sub.submittedAt.toLocaleTimeString()}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
