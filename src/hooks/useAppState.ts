@@ -357,18 +357,19 @@ function useVotingActions(setState: Dispatch<SetStateAction<AppState>>) {
       const accounts = [...prev.testAccounts];
       const newSubmissions: BallotSubmission[] = [];
 
+      const getSecureRandom = () => crypto.getRandomValues(new Uint32Array(1))[0] / 4294967296;
       for (let i = 0; i < Math.min(count, accounts.length); i++) {
         const account = accounts[i];
         if (!account.hasVoted) {
           // Generate random rankings
-          const shuffled = [...prev.ballotOptions].sort(() => Math.random() - 0.5);
-          const rankings = shuffled.slice(0, Math.floor(Math.random() * 4) + 1).map((opt, idx) => ({
+          const shuffled = [...prev.ballotOptions].sort(() => getSecureRandom() - 0.5);
+          const rankings = shuffled.slice(0, Math.floor(getSecureRandom() * 4) + 1).map((opt, idx) => ({
             optionId: opt.id,
             rank: idx + 1,
           }));
 
           // Randomly add a write-in (10% chance)
-          const writeIn = Math.random() < 0.1 ? `Citizen Initiative #${Math.floor(Math.random() * 100)}` : undefined;
+          const writeIn = getSecureRandom() < 0.1 ? `Citizen Initiative #${Math.floor(getSecureRandom() * 100)}` : undefined;
 
           account.hasVoted = true;
           if (writeIn) account.writeIns.push(writeIn);
