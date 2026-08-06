@@ -164,6 +164,35 @@ function ProposalHistory({ proposals }: { proposals: Proposal[] }) {
 }
 
 
+export const getTierInfo = (tier: string) => {
+    switch (tier) {
+      case 'law1_shield':
+        return { label: 'Law 1: The Shield', icon: Lock, color: 'danger', desc: 'Protected inalienable rights' };
+      case 'law2_sandbox':
+        return { label: 'Law 2: The Sandbox', icon: Unlock, color: 'success', desc: 'Local community logistics' };
+      case 'law3_dynamic':
+        return { label: 'Law 3: Dynamic', icon: FileCode, color: 'accent', desc: 'Citizen write-in proposals' };
+      default:
+        return { label: tier, icon: Shield, color: 'neutral', desc: '' };
+    }
+  };
+
+export const highlightViolations = (text: string, violations: string[]) => {
+    let highlighted = text;
+    violations.forEach(v => {
+      const keyword = v.split('"')[1];
+      if (keyword) {
+        const regex = new RegExp(`(${keyword})`, 'gi');
+        highlighted = highlighted.replace(regex, '==VIOLATION==$1==END==');
+      }
+    });
+    return highlighted
+      .replace(/==VIOLATION==.*?==END==/g, match => {
+        const keyword = match.replace(/==VIOLATION==|==END==/g, '');
+        return `<span class="bg-danger-500/30 text-danger-300 px-1 rounded">${keyword}</span>`;
+      });
+  };
+
 interface CompilerOutputProps {
   compileResult: {
     success: boolean;
@@ -171,11 +200,9 @@ interface CompilerOutputProps {
     proposal?: Proposal;
   } | null;
   content: string;
-  getTierInfo: (tier: string) => { label: string; icon: React.ElementType; color: string; desc: string };
-  highlightViolations: (text: string, violations: string[]) => string;
 }
 
-function CompilerOutput({ compileResult, content, getTierInfo, highlightViolations }: CompilerOutputProps) {
+function CompilerOutput({ compileResult, content }: CompilerOutputProps) {
   return (
     <div className="card p-6">
       <h2 className="text-lg font-semibold text-primary-200 mb-4 flex items-center gap-2">
@@ -184,97 +211,37 @@ function CompilerOutput({ compileResult, content, getTierInfo, highlightViolatio
       </h2>
 
       {!compileResult ? (
-        <div className="text-center py-16 text-primary-500">
-          <Code2 className="w-12 h-12 mx-auto mb-4 opacity-50" />
-          <p>Compile a proposal to see results</p>
-        </div>
+        <CompilerEmptyState />
       ) : compileResult.success ? (
-        <div className="animate-in">
-          <div className="flex items-center gap-3 mb-4">
-            <CheckCircle2 className="w-8 h-8 text-success-400" />
-            <div>
-              <h3 className="text-lg font-semibold text-success-400">Compilation Successful</h3>
-              <p className="text-sm text-primary-400">Proposal compiled and ready for ballot</p>
-            </div>
-          </div>
-
-          <div className="card-elevated p-4 space-y-3">
-            <div>
-              <span className="text-xs text-primary-500">Proposal ID</span>
-              <p className="font-mono text-primary-300">{compileResult.proposal?.id}</p>
-            </div>
-            <div>
-              <span className="text-xs text-primary-500">Title</span>
-              <p className="text-primary-200">{compileResult.proposal?.title}</p>
-            </div>
-            <div>
-              <span className="text-xs text-primary-500">Tier</span>
-              <p className="text-primary-200">
-                {getTierInfo(compileResult.proposal?.tier || '').label}
-              </p>
-            </div>
-            <div>
-              <span className="text-xs text-primary-500">Status</span>
-              <span className="badge-success ml-2">Ballot Ready</span>
-            </div>
-          </div>
-        </div>
+        <CompilerSuccessState compileResult={compileResult} getTierInfo={getTierInfo} />
       ) : (
-        <div className="animate-in">
-          <div className="flex items-center gap-3 mb-4">
-            <XCircle className="w-8 h-8 text-danger-400" />
-            <div>
-              <h3 className="text-lg font-semibold text-danger-400">Compilation Failed</h3>
-              <p className="text-sm text-primary-400">Proposal vetoed by Law 1 Shield</p>
-            </div>
-          </div>
-
-          <div className="card-elevated p-4 space-y-4 border-danger-500/30">
-            <div>
-              <span className="text-xs text-primary-500">Veto Reason</span>
-              <div className="mt-2 space-y-2">
-                {compileResult.violations.map((v, i) => (
-                  <div key={i} className="flex items-start gap-2">
-                    <ShieldAlert className="w-4 h-4 text-danger-400 mt-0.5" />
-                    <span className="text-danger-300 text-sm">{v}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <span className="text-xs text-primary-500">Violating Content</span>
-              <div
-                className="mt-2 p-3 bg-danger-500/10 rounded-lg font-mono text-sm text-primary-300"
-                dangerouslySetInnerHTML={{
-                  __html: highlightViolations(content, compileResult.violations),
-                }}
-              />
-            </div>
-          </div>
-        </div>
+        <CompilerErrorState compileResult={compileResult} content={content} highlightViolations={highlightViolations} />
       )}
     </div>
   );
 }
 
-export function CompilerPage({
-  proposals,
-  onSubmitProposal,
-  onCheckViolations,
-}: CompilerPageProps) {
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-  const [selectedTier, setSelectedTier] = useState<'law1_shield' | 'law2_sandbox' | 'law3_dynamic'>(
-    'law2_sandbox'
-  );
-  const [isCompiling, setIsCompiling] = useState(false);
-  const [compileResult, setCompileResult] = useState<{
-    success: boolean;
-    violations: string[];
-    proposal?: Proposal;
-  } | null>(null);
+interface ProposalEditorProps {
+  title: string;
+  setTitle: (title: string) => void;
+  content: string;
+  setContent: (content: string) => void;
+  selectedTier: 'law1_shield' | 'law2_sandbox' | 'law3_dynamic';
+  setSelectedTier: (tier: 'law1_shield' | 'law2_sandbox' | 'law3_dynamic') => void;
+  isCompiling: boolean;
+  onCompile: () => void;
+}
 
+export function ProposalEditor({
+  title,
+  setTitle,
+  content,
+  setContent,
+  selectedTier,
+  setSelectedTier,
+  isCompiling,
+  onCompile,
+}: ProposalEditorProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
 
@@ -318,6 +285,156 @@ export function CompilerPage({
   };
 
 
+  return (
+    <div className="card p-6">
+      <h2 className="text-lg font-semibold text-primary-200 mb-4 flex items-center gap-2">
+        <Code2 className="w-5 h-5" />
+        Proposal Editor
+      </h2>
+
+      <div className="space-y-4">
+        <div>
+          <label className="label">Proposal Title</label>
+          <input
+            type="text"
+            value={title}
+            onChange={e => setTitle(e.target.value)}
+            className="input"
+            placeholder="Enter proposal title..."
+          />
+        </div>
+
+        <div>
+          <label className="label">Governance Tier</label>
+          <div className="grid grid-cols-3 gap-2">
+            {(['law1_shield', 'law2_sandbox', 'law3_dynamic'] as const).map(tier => {
+              const info = getTierInfo(tier);
+              return (
+                <button
+                  key={tier}
+                  onClick={() => setSelectedTier(tier)}
+                  className={`p-3 rounded-lg border text-left transition-all ${
+                    selectedTier === tier
+                      ? tier === 'law1_shield'
+                        ? 'bg-danger-500/20 border-danger-500/50'
+                        : tier === 'law2_sandbox'
+                        ? 'bg-success-500/20 border-success-500/50'
+                        : 'bg-accent-500/20 border-accent-500/50'
+                      : 'bg-primary-800/50 border-primary-700/50 hover:border-primary-500'
+                  }`}
+                >
+                  <info.icon
+                    className={`w-5 h-5 mb-1 ${
+                      tier === 'law1_shield'
+                        ? 'text-danger-400'
+                        : tier === 'law2_sandbox'
+                        ? 'text-success-400'
+                        : 'text-accent-400'
+                    }`}
+                  />
+                  <p className="text-sm font-medium text-primary-200">{info.label.split(': ')[0]}</p>
+                </button>
+              );
+            })}
+          </div>
+          {selectedTier === 'law1_shield' && (
+            <p className="text-xs text-danger-400 mt-2 flex items-center gap-1">
+              <Lock className="w-3 h-3" />
+              Shield tier proposals are automatically vetoed
+            </p>
+          )}
+        </div>
+
+        <div>
+          <label className="label">Proposal Content</label>
+          <div className="relative w-full h-[200px] bg-primary-900/50 border border-primary-700 rounded-lg focus-within:ring-2 focus-within:ring-accent-500 focus-within:border-transparent transition-all overflow-hidden">
+            {/* Backdrop with highlighted violations */}
+            <div
+              ref={backdropRef}
+              className="absolute inset-0 w-full h-full px-4 py-3 font-mono text-sm leading-6 whitespace-pre-wrap break-words overflow-y-auto select-none pointer-events-none z-20"
+            >
+              {segments.map((segment, index) => {
+                if (segment.isViolation) {
+                  return (
+                    <span
+                      key={index}
+                      className="relative group/tooltip inline underline decoration-wavy decoration-danger-500 underline-offset-4 text-danger-400 font-semibold cursor-help pointer-events-auto"
+                      onMouseDown={handleSpanMouseDown}
+                    >
+                      {segment.text}
+                      <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/tooltip:block bg-primary-950 text-primary-100 text-xs px-3 py-2 rounded-lg border border-danger-500/30 shadow-xl whitespace-normal w-64 z-50 pointer-events-none text-center font-sans font-normal">
+                        Law 1 Compiler Warning: This clause violates an inalienable right. Please modify to proceed.
+                        <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-primary-950" />
+                      </span>
+                    </span>
+                  );
+                }
+                return (
+                  <span key={index} className="text-primary-200">
+                    {segment.text}
+                  </span>
+                );
+              })}
+              {!content && (
+                <span className="text-primary-500 pointer-events-none font-sans">
+                  Enter your proposal content here...
+                  <br /><br />
+                  Tip: Try adding words like 'ban speech' or 'seize property' to test Law 1 shield violations.
+                </span>
+              )}
+            </div>
+
+            {/* Textarea */}
+            <textarea
+              ref={textareaRef}
+              value={content}
+              onChange={e => setContent(e.target.value)}
+              onScroll={handleScroll}
+              className="absolute inset-0 w-full h-full px-4 py-3 bg-transparent text-transparent caret-primary-100 font-mono text-sm leading-6 resize-none focus:outline-none z-10 overflow-y-auto"
+            />
+          </div>
+        </div>
+
+        <button
+          onClick={onCompile}
+          disabled={!title || !content || isCompiling || hasValidationError}
+          className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isCompiling ? (
+            <>
+              <span className="animate-spin">⏳</span>
+              Compiling Proposal...
+            </>
+          ) : (
+            <>
+              <Send className="w-4 h-4" />
+              Compile & Submit
+            </>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export function CompilerPage({
+  proposals,
+  onSubmitProposal,
+  onCheckViolations,
+}: CompilerPageProps) {
+  const [title, setTitle] = useState('');
+  const [content, setContent] = useState('');
+  const [selectedTier, setSelectedTier] = useState<'law1_shield' | 'law2_sandbox' | 'law3_dynamic'>(
+    'law2_sandbox'
+  );
+  const [isCompiling, setIsCompiling] = useState(false);
+  const [compileResult, setCompileResult] = useState<{
+    success: boolean;
+    violations: string[];
+    proposal?: Proposal;
+  } | null>(null);
+
+
   const handleCompile = async () => {
     setIsCompiling(true);
     setCompileResult(null);
@@ -353,35 +470,6 @@ export function CompilerPage({
     setIsCompiling(false);
   };
 
-  const getTierInfo = (tier: string) => {
-    switch (tier) {
-      case 'law1_shield':
-        return { label: 'Law 1: The Shield', icon: Lock, color: 'danger', desc: 'Protected inalienable rights' };
-      case 'law2_sandbox':
-        return { label: 'Law 2: The Sandbox', icon: Unlock, color: 'success', desc: 'Local community logistics' };
-      case 'law3_dynamic':
-        return { label: 'Law 3: Dynamic', icon: FileCode, color: 'accent', desc: 'Citizen write-in proposals' };
-      default:
-        return { label: tier, icon: Shield, color: 'neutral', desc: '' };
-    }
-  };
-
-  const highlightViolations = (text: string, violations: string[]) => {
-    let highlighted = text;
-    violations.forEach(v => {
-      const keyword = v.split('"')[1];
-      if (keyword) {
-        const regex = new RegExp(`(${keyword})`, 'gi');
-        highlighted = highlighted.replace(regex, '==VIOLATION==$1==END==');
-      }
-    });
-    return highlighted
-      .replace(/==VIOLATION==.*?==END==/g, match => {
-        const keyword = match.replace(/==VIOLATION==|==END==/g, '');
-        return `<span class="bg-danger-500/30 text-danger-300 px-1 rounded">${keyword}</span>`;
-      });
-  };
-
   return (
     <div className="p-8 space-y-8">
       {/* Header */}
@@ -401,137 +489,19 @@ export function CompilerPage({
       {/* Compiler Interface */}
       <div className="grid grid-cols-2 gap-6">
         {/* Editor */}
-        <div className="card p-6">
-          <h2 className="text-lg font-semibold text-primary-200 mb-4 flex items-center gap-2">
-            <Code2 className="w-5 h-5" />
-            Proposal Editor
-          </h2>
-
-          <div className="space-y-4">
-            <div>
-              <label className="label">Proposal Title</label>
-              <input
-                type="text"
-                value={title}
-                onChange={e => setTitle(e.target.value)}
-                className="input"
-                placeholder="Enter proposal title..."
-              />
-            </div>
-
-            <div>
-              <label className="label">Governance Tier</label>
-              <div className="grid grid-cols-3 gap-2">
-                {(['law1_shield', 'law2_sandbox', 'law3_dynamic'] as const).map(tier => {
-                  const info = getTierInfo(tier);
-                  return (
-                    <button
-                      key={tier}
-                      onClick={() => setSelectedTier(tier)}
-                      className={`p-3 rounded-lg border text-left transition-all ${
-                        selectedTier === tier
-                          ? tier === 'law1_shield'
-                            ? 'bg-danger-500/20 border-danger-500/50'
-                            : tier === 'law2_sandbox'
-                            ? 'bg-success-500/20 border-success-500/50'
-                            : 'bg-accent-500/20 border-accent-500/50'
-                          : 'bg-primary-800/50 border-primary-700/50 hover:border-primary-500'
-                      }`}
-                    >
-                      <info.icon
-                        className={`w-5 h-5 mb-1 ${
-                          tier === 'law1_shield'
-                            ? 'text-danger-400'
-                            : tier === 'law2_sandbox'
-                            ? 'text-success-400'
-                            : 'text-accent-400'
-                        }`}
-                      />
-                      <p className="text-sm font-medium text-primary-200">{info.label.split(': ')[0]}</p>
-                    </button>
-                  );
-                })}
-              </div>
-              {selectedTier === 'law1_shield' && (
-                <p className="text-xs text-danger-400 mt-2 flex items-center gap-1">
-                  <Lock className="w-3 h-3" />
-                  Shield tier proposals are automatically vetoed
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label className="label">Proposal Content</label>
-              <div className="relative w-full h-[200px] bg-primary-900/50 border border-primary-700 rounded-lg focus-within:ring-2 focus-within:ring-accent-500 focus-within:border-transparent transition-all overflow-hidden">
-                {/* Backdrop with highlighted violations */}
-                <div
-                  ref={backdropRef}
-                  className="absolute inset-0 w-full h-full px-4 py-3 font-mono text-sm leading-6 whitespace-pre-wrap break-words overflow-y-auto select-none pointer-events-none z-20"
-                >
-                  {segments.map((segment, index) => {
-                    if (segment.isViolation) {
-                      return (
-                        <span
-                          key={index}
-                          className="relative group/tooltip inline underline decoration-wavy decoration-danger-500 underline-offset-4 text-danger-400 font-semibold cursor-help pointer-events-auto"
-                          onMouseDown={handleSpanMouseDown}
-                        >
-                          {segment.text}
-                          <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/tooltip:block bg-primary-950 text-primary-100 text-xs px-3 py-2 rounded-lg border border-danger-500/30 shadow-xl whitespace-normal w-64 z-50 pointer-events-none text-center font-sans font-normal">
-                            Law 1 Compiler Warning: This clause violates an inalienable right. Please modify to proceed.
-                            <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-primary-950" />
-                          </span>
-                        </span>
-                      );
-                    }
-                    return (
-                      <span key={index} className="text-primary-200">
-                        {segment.text}
-                      </span>
-                    );
-                  })}
-                  {!content && (
-                    <span className="text-primary-500 pointer-events-none font-sans">
-                      Enter your proposal content here...
-                      <br /><br />
-                      Tip: Try adding words like 'ban speech' or 'seize property' to test Law 1 shield violations.
-                    </span>
-                  )}
-                </div>
-
-                {/* Textarea */}
-                <textarea
-                  ref={textareaRef}
-                  value={content}
-                  onChange={e => setContent(e.target.value)}
-                  onScroll={handleScroll}
-                  className="absolute inset-0 w-full h-full px-4 py-3 bg-transparent text-transparent caret-primary-100 font-mono text-sm leading-6 resize-none focus:outline-none z-10 overflow-y-auto"
-                />
-              </div>
-            </div>
-
-            <button
-              onClick={handleCompile}
-              disabled={!title || !content || isCompiling || hasValidationError}
-              className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isCompiling ? (
-                <>
-                  <span className="animate-spin">⏳</span>
-                  Compiling Proposal...
-                </>
-              ) : (
-                <>
-                  <Send className="w-4 h-4" />
-                  Compile & Submit
-                </>
-              )}
-            </button>
-          </div>
-        </div>
+        <ProposalEditor
+          title={title}
+          setTitle={setTitle}
+          content={content}
+          setContent={setContent}
+          selectedTier={selectedTier}
+          setSelectedTier={setSelectedTier}
+          isCompiling={isCompiling}
+          onCompile={handleCompile}
+        />
 
         {/* Output */}
-        <CompilerOutput compileResult={compileResult} content={content} getTierInfo={getTierInfo} highlightViolations={highlightViolations} />
+        <CompilerOutput compileResult={compileResult} content={content} />
       </div>
 
       {/* Proposal History */}

@@ -3,6 +3,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { 
   dbFetchProposals, 
   dbInsertProposal,
+  dbInsertProposals,
   dbFetchBallotSubmissions, 
   dbInsertBallotSubmission, 
   dbInsertBallotSubmissions,
@@ -39,7 +40,6 @@ const PRECOMPUTED_LAW1_RULES = LAW1_RULES.map(rule => ({
   })),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const SEED_PROPOSALS: Proposal[] = [
   {
     id: 'prop-seed-1',
@@ -123,42 +123,8 @@ function useDataSync(setState: Dispatch<SetStateAction<AppState>>) {
         if (fetchedProposals !== null) {
           if (fetchedProposals.length === 0) {
             // Seed default proposals so user gets instant rows
-            const seedProposals: Proposal[] = [
-              {
-                id: 'prop-seed-1',
-                title: 'Tampa Green Canopy Restoration Act',
-                content: 'An initiative to allocate municipal budget for planting 1,000 new native oak trees in high-heat urban areas and restoring community green spaces.',
-                tier: 'law2_sandbox',
-                submittedBy: 'Sarah Chen',
-                submittedAt: new Date('2024-02-05T10:00:00Z'),
-                status: 'compiled'
-              },
-              {
-                id: 'prop-seed-2',
-                title: 'Digital Inclusion Community Centers',
-                content: 'Constructing free public learning centers equipped with high-speed internet, smart computer workstations, and professional STEM tutoring mentors.',
-                tier: 'law3_dynamic',
-                submittedBy: 'Michael Rodriguez',
-                submittedAt: new Date('2024-02-08T14:30:00Z'),
-                status: 'compiled'
-              },
-              {
-                id: 'prop-seed-3',
-                title: 'Asimov Security Code Verification Amendment',
-                content: 'We propose to censor and silence any individual who speaks against the protocol rules or attempts to modify the primary charter.',
-                tier: 'law1_shield',
-                submittedBy: 'System Watchdog Bot',
-                submittedAt: new Date('2024-02-12T09:15:00Z'),
-                status: 'vetoed',
-                vetoReason: 'First Amendment Shield: "censor" detected; First Amendment Shield: "silence" detected',
-                triggeredKeywords: ['First Amendment Shield: "censor" detected', 'First Amendment Shield: "silence" detected']
-              }
-            ];
-
-            for (const proposal of seedProposals) {
-              await dbInsertProposal(proposal);
-            }
-            fetchedProposals = seedProposals;
+            await dbInsertProposals(SEED_PROPOSALS);
+            fetchedProposals = SEED_PROPOSALS;
           }
           setState(prev => ({ ...prev, proposals: fetchedProposals! }));
         }
@@ -280,9 +246,16 @@ function useIdentityActions(setState: Dispatch<SetStateAction<AppState>>) {
 function useProposalActions(setState: Dispatch<SetStateAction<AppState>>) {
   const checkLaw1Violations = useCallback((content: string): string[] => {
     const violations: string[] = [];
+    if (!ALL_KEYWORDS_REGEX || !ALL_KEYWORDS_REGEX.test(content)) {
+      return violations;
+    }
+
     const lowerContent = content.toLowerCase();
 
     PRECOMPUTED_LAW1_RULES.forEach(rule => {
+      if (rule.regex && !rule.regex.test(content)) {
+        return;
+      }
       rule.keywords.forEach(keyword => {
         if (lowerContent.includes(keyword.lower)) {
           violations.push(`${rule.name}: "${keyword.original}" detected`);
@@ -384,18 +357,19 @@ function useVotingActions(setState: Dispatch<SetStateAction<AppState>>) {
       const accounts = [...prev.testAccounts];
       const newSubmissions: BallotSubmission[] = [];
 
+      const getSecureRandom = () => crypto.getRandomValues(new Uint32Array(1))[0] / 4294967296;
       for (let i = 0; i < Math.min(count, accounts.length); i++) {
         const account = accounts[i];
         if (!account.hasVoted) {
           // Generate random rankings
-          const shuffled = [...prev.ballotOptions].sort(() => Math.random() - 0.5);
-          const rankings = shuffled.slice(0, Math.floor(Math.random() * 4) + 1).map((opt, idx) => ({
+          const shuffled = [...prev.ballotOptions].sort(() => getSecureRandom() - 0.5);
+          const rankings = shuffled.slice(0, Math.floor(getSecureRandom() * 4) + 1).map((opt, idx) => ({
             optionId: opt.id,
             rank: idx + 1,
           }));
 
           // Randomly add a write-in (10% chance)
-          const writeIn = Math.random() < 0.1 ? `Citizen Initiative #${Math.floor(Math.random() * 100)}` : undefined;
+          const writeIn = getSecureRandom() < 0.1 ? `Citizen Initiative #${Math.floor(getSecureRandom() * 100)}` : undefined;
 
           account.hasVoted = true;
           if (writeIn) account.writeIns.push(writeIn);
@@ -485,120 +459,64 @@ function useVotingActions(setState: Dispatch<SetStateAction<AppState>>) {
 }
 
 export function useAppState() {
-  const [state, setState] = useState<AppState>(initialState);
+  const [currentPage, setCurrentPage] = useState<PageRoute>('/dashboard');
 
-  useDataSync(setState);
+  const {
+    identity,
+    completeVerificationStep,
+    addVouchToken,
+    triggerFraudStrike,
+    freezeAccount,
+    resetIdentity
+  } = useIdentity();
 
-  const setCurrentPage = useCallback((page: PageRoute) => {
-    setState(prev => ({ ...prev, currentPage: page }));
+  const {
+    proposals,
+    checkLaw1Violations,
+    submitProposal
+  } = useProposals();
+
+  const {
+    ballotOptions,
+    ballotSubmissions,
+    testAccounts,
+    rcvResult,
+    submitBallot,
+    runRCVSimulation,
+    generateMockVotes,
+    resetVoting
+  } = useBallotState();
+
+  const state: AppState = {
+    currentPage,
+    identity,
+    proposals,
+    ballotOptions,
+    ballotSubmissions,
+    testAccounts,
+    rcvResult,
+    calendarEvents: MOCK_CALENDAR_EVENTS,
+  };
+
+  const handleSetCurrentPage = useCallback((page: PageRoute) => {
+    setCurrentPage(page);
   }, []);
-
-  const identityActions = useIdentityActions(setState);
-
-  const proposalActions = useProposalActions(setState);
-
-
-  const votingActions = useVotingActions(setState);
 
   return {
     state,
-    setCurrentPage,
-    ...identityActions,
-    ...proposalActions,
-    ...votingActions,
+    setCurrentPage: handleSetCurrentPage,
+    completeVerificationStep,
+    addVouchToken,
+    triggerFraudStrike,
+    freezeAccount,
+    resetIdentity,
+    checkLaw1Violations,
+    submitProposal,
+    submitBallot,
+    runRCVSimulation,
+    generateMockVotes,
+    resetVoting,
   };
 }
 
-export function calculateRCVResult(
-  options: BallotOption[],
-  submissions: BallotSubmission[]
-): RCVResult {
-  const rounds: RCVRound[] = [];
-  let currentOptions = [...options];
-  const optionsMap = new Map(options.map(opt => [opt.id, opt]));
-  let currentRankings = submissions.map(sub => [...sub.rankings].sort((a, b) => a.rank - b.rank));
-
-  const totalVotes = submissions.length;
-  const threshold = totalVotes / 2;
-
-  let roundNumber = 0;
-  let winner: BallotOption | undefined;
-
-  while (!winner && currentOptions.length > 1 && roundNumber < 10) {
-    roundNumber++;
-
-    // Count first-choice votes
-    const voteDistribution: Record<string, number> = {};
-    currentOptions.forEach(opt => {
-      voteDistribution[opt.id] = 0;
-    });
-
-    currentRankings.forEach(rankings => {
-      const firstChoice = rankings[0];
-      if (firstChoice && Object.prototype.hasOwnProperty.call(voteDistribution, firstChoice.optionId)) {
-        voteDistribution[firstChoice.optionId]++;
-      }
-    });
-
-    let maxVotes = -Infinity;
-    let minVotes = Infinity;
-    let winnerId: string | undefined;
-    let loserId: string | undefined;
-
-    for (const id in voteDistribution) {
-      const votes = voteDistribution[id];
-      if (votes > maxVotes) {
-        maxVotes = votes;
-        winnerId = id;
-      }
-      if (votes < minVotes) {
-        minVotes = votes;
-        loserId = id;
-      }
-    }
-
-    // Check for winner
-    if (maxVotes > threshold) {
-      winner = winnerId ? optionsMap.get(winnerId) : undefined;
-
-      rounds.push({
-        roundNumber,
-        voteDistribution,
-        threshold,
-        winner: winnerId,
-        totalVotes,
-      });
-      break;
-    }
-
-    // Eliminate loser
-    currentOptions = currentOptions.filter(opt => opt.id !== loserId);
-
-    // Optimization: Create a Set of current option IDs for O(1) lookup
-    const currentOptionIds = new Set(currentOptions.map(opt => opt.id));
-
-    // Redistribute votes
-    currentRankings = currentRankings.map(rankings =>
-      rankings.filter(r => currentOptionIds.has(r.optionId))
-    );
-
-    rounds.push({
-      roundNumber,
-      eliminatedOptionId: loserId,
-      voteDistribution,
-      threshold,
-      totalVotes,
-    });
-  }
-
-  if (!winner) {
-    winner = currentOptions[0];
-  }
-
-  return {
-    rounds,
-    winner: winner!,
-    totalVotes,
-    completedAt: new Date(),
-  };
-}
+export { calculateRCVResult };

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Database, CheckCircle2, AlertTriangle, Copy, Check, Terminal, ExternalLink, X, RefreshCw } from 'lucide-react';
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
+import { Badge } from './Badge';
 
 const SUPABASE_SQL_SETUP = `\
 -- Supabase SQL Setup for Project Sandbox
@@ -66,9 +67,9 @@ function ModalHeader({ onClose }: ModalHeaderProps) {
   return (
     <div className="p-6 border-b border-primary-700/50 flex items-center justify-between bg-primary-950/50">
       <div className="flex items-center gap-3">
-        <div className={`p-2 rounded-lg ${isSupabaseConfigured ? 'bg-success-500/10 text-success-400' : 'bg-warning-500/10 text-warning-400'}`}>
+        <Badge iconOnly variant={isSupabaseConfigured ? 'success' : 'warning'}>
           <Database className="w-5 h-5" />
-        </div>
+        </Badge>
         <div>
           <h2 className="text-lg font-bold text-primary-100">Supabase DB Sync</h2>
           <p className="text-xs text-primary-400">Manage real-time decentralized state synchronization</p>
@@ -100,12 +101,14 @@ function StatusPanel({ testResult, isTesting, onTestConnection }: StatusPanelPro
             Connected endpoint: <code className="text-primary-300 font-mono text-xs break-all">{import.meta.env.VITE_SUPABASE_URL || 'Not configured'}</code>
           </p>
         </div>
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-primary-950 border border-primary-700">
-          <span className={`w-2 h-2 rounded-full ${isSupabaseConfigured ? 'bg-success-400 animate-pulse' : 'bg-warning-400'}`} />
-          <span className={isSupabaseConfigured ? 'text-success-400' : 'text-warning-400'}>
-            {isSupabaseConfigured ? 'Configured' : 'Setup Needed'}
-          </span>
-        </div>
+        <Badge
+          variant={isSupabaseConfigured ? 'success' : 'warning'}
+          dot
+          pulse={isSupabaseConfigured}
+          className="bg-primary-950 border-primary-700 font-semibold"
+        >
+          {isSupabaseConfigured ? 'Configured' : 'Setup Needed'}
+        </Badge>
       </div>
 
       {/* Test connection output */}
@@ -264,6 +267,8 @@ export function DatabaseStatusModal({ isOpen, onClose }: DatabaseStatusModalProp
   useEffect(() => {
     if (isOpen && isSupabaseConfigured) {
       testConnection();
+    } else if (!isOpen) {
+      setTestResult(null);
     }
   }, [isOpen]);
 

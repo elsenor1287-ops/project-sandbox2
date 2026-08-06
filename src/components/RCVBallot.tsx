@@ -1,15 +1,8 @@
 import { useState, useMemo } from 'react';
 import type { BallotOption, BallotSubmission, RCVResult, TestAccount } from '../types';
-import type { RankedItem } from './rcv-ballot/types';
-import { calculateRCVResult } from './rcv-ballot/utils';
-import { RecentSubmissionsTable } from './rcv-ballot/RecentSubmissionsTable';
-import { RunoffTally } from './rcv-ballot/RunoffTally';
-import { BallotCard } from './rcv-ballot/BallotCard';
-import { VotingStats } from './rcv-ballot/VotingStats';
-import { VotingHeader } from './rcv-ballot/VotingHeader';
-import { BudgetAllocationBar } from './rcv-ballot/BudgetAllocationBar';
+import { calculateRCVResult } from '../lib/rcvCalculation';
 
-export interface VotingPageProps {
+interface VotingPageProps {
   ballotOptions: BallotOption[];
   submissions: BallotSubmission[];
   testAccounts: TestAccount[];
@@ -183,4 +176,3 @@ export function VotingPage({
     </div>
   );
 }
-
