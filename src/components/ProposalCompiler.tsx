@@ -182,7 +182,8 @@ export const highlightViolations = (text: string, violations: string[]) => {
     violations.forEach(v => {
       const keyword = v.split('"')[1];
       if (keyword) {
-        const regex = new RegExp(`(${keyword})`, 'gi');
+        const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const regex = new RegExp(`(${escapedKeyword})`, 'gi');
         highlighted = highlighted.replace(regex, '==VIOLATION==$1==END==');
       }
     });
