@@ -135,7 +135,7 @@ export function useBallotState() {
 
   const generateMockVotes = useCallback((count: number) => {
     const newSubmissions: BallotSubmission[] = [];
-    let updatedAccounts: TestAccount[] = [];
+
 
     setTestAccounts(prevAccounts => {
       const accounts = [...prevAccounts];
@@ -166,7 +166,7 @@ export function useBallotState() {
           newSubmissions.push(sub);
         }
       }
-      updatedAccounts = accounts;
+
       return accounts;
     });
 
